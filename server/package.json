@@ -1,0 +1,17 @@
+{
+  "name": "wuxia-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nakama server runtime module (TypeScript) for the wuxia MMO",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "nakama-runtime": "github:heroiclabs/nakama-common#v1.48.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}
