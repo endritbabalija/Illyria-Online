@@ -224,6 +224,12 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.wuxia.gamedata": {
+      "version": "file:../../shared/gamedata",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
       "depth": 0,

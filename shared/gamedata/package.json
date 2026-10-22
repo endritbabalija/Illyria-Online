@@ -1,0 +1,7 @@
+{
+  "name": "com.wuxia.gamedata",
+  "version": "0.1.0",
+  "displayName": "Wuxia Game Data",
+  "description": "Shared game data (combat numbers, monsters, later skills, items and drop tables) loaded by both the Unity client and the Nakama server.",
+  "unity": "6000.3"
+}
