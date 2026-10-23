@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -10,7 +11,8 @@ namespace Wuxia.Monsters
     /// <summary>
     /// Simple hunting-zone monster: wanders near its spawn point, chases the player inside aggro range
     /// (or when hit, calling its pack in), bites in melee, and runs home to full HP once pulled past
-    /// its leash. Offline in M1; the server takes over these decisions in M4.
+    /// its leash. Stands still while stunned, paralysed or knocked down, and can't bite up onto a ledge.
+    /// Offline for now; the server takes over these decisions in M4.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent), typeof(Combatant))]
     public class MonsterAI : MonoBehaviour
@@ -28,7 +30,13 @@ namespace Wuxia.Monsters
         [SerializeField] float wanderPauseMax = 6f;
 
         public Combatant Combatant { get; private set; }
+        public MonsterData Data => data;
         public float RespawnDelay => data.respawnDelay;
+
+        /// <summary>Fires after every (re)spawn, once the monster is back at full HP and idle.</summary>
+        public event Action Spawned;
+        /// <summary>Fires when the monster bites (its basic attack), just before the hit resolves.</summary>
+        public event Action Attacked;
 
         NavMeshAgent agent;
         Collider body;
@@ -48,7 +56,7 @@ namespace Wuxia.Monsters
             body = GetComponent<Collider>();
             Combatant = GetComponent<Combatant>();
             data = GameData.Combat.GetMonster(monsterId);
-            Combatant.Init(data.name, data.level, data.maxHp, data.defense, data.dodge, data.attack);
+            Combatant.Init(data.name, data.level, data.maxHp, data.defense, data.dodge, data.attack, data.resist);
             agent.stoppingDistance = data.attack.range * 0.8f;
         }
 
@@ -79,10 +87,15 @@ namespace Wuxia.Monsters
             target = null;
             EnterIdle();
             if (!alive.Contains(this)) alive.Add(this);
+            Spawned?.Invoke();
         }
 
         void Update()
         {
+            var disabled = state != State.Dead && Combatant.IsDisabled;
+            if (agent.isOnNavMesh && agent.isStopped != disabled) agent.isStopped = disabled;
+            if (disabled) return;
+
             switch (state)
             {
                 case State.Idle: UpdateIdle(); break;
@@ -108,8 +121,8 @@ namespace Wuxia.Monsters
             }
 
             if (Time.time < nextWanderTime || agent.pathPending || agent.remainingDistance > agent.stoppingDistance) return;
-            nextWanderTime = Time.time + Random.Range(wanderPauseMin, wanderPauseMax);
-            var offset = Random.insideUnitCircle * data.wanderRadius;
+            nextWanderTime = Time.time + UnityEngine.Random.Range(wanderPauseMin, wanderPauseMax);
+            var offset = UnityEngine.Random.insideUnitCircle * data.wanderRadius;
             if (NavMesh.SamplePosition(home + new Vector3(offset.x, 0f, offset.y), out var hit, 2f, NavMesh.AllAreas))
                 agent.SetDestination(hit.position);
         }
@@ -122,7 +135,7 @@ namespace Wuxia.Monsters
                 return;
             }
 
-            if (FlatDistance(target.transform.position) <= data.attack.range)
+            if (InReach(target.transform.position))
             {
                 if (agent.hasPath) agent.ResetPath();
                 FaceTowards(target.transform.position);
@@ -130,6 +143,7 @@ namespace Wuxia.Monsters
                 {
                     nextAttackTime = Time.time + data.attack.interval;
                     visuals.PlayAttack();
+                    Attacked?.Invoke();
                     Combatant.BasicAttack(target);
                 }
             }
@@ -151,7 +165,7 @@ namespace Wuxia.Monsters
         {
             state = State.Idle;
             agent.speed = data.wanderSpeed;
-            nextWanderTime = Time.time + Random.Range(0f, wanderPauseMax);
+            nextWanderTime = Time.time + UnityEngine.Random.Range(0f, wanderPauseMax);
         }
 
         void StartChase(Combatant who)
@@ -208,6 +222,9 @@ namespace Wuxia.Monsters
             if (d.sqrMagnitude < 0.0001f) return;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), agent.angularSpeed * Time.deltaTime);
         }
+
+        bool InReach(Vector3 point) =>
+            FlatDistance(point) <= data.attack.range && Mathf.Abs(point.y - transform.position.y) <= data.attack.reachHeight;
 
         float FlatDistance(Vector3 point)
         {
