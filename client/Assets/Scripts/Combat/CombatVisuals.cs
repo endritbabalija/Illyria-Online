@@ -5,7 +5,8 @@ namespace Wuxia.Combat
     /// <summary>
     /// Greybox stand-in for animations: an attack lunge with a weapon swing, a spin for circle forms,
     /// a squash on hit, a dazed wobble while disabled, and tipping over on death. Moves only the visual
-    /// child, never the root that carries the colliders.
+    /// child, never the root that carries the colliders. On an animated character the Animator plays
+    /// the attacks instead (<see cref="animatedAttacks"/>); the hit squash stays.
     /// </summary>
     public class CombatVisuals : MonoBehaviour
     {
@@ -15,6 +16,8 @@ namespace Wuxia.Combat
         [SerializeField] Transform weapon;
         [Tooltip("Optional off-hand weapon pivot (the left sica); swung through the mirrored arc with the main one.")]
         [SerializeField] Transform offHandWeapon;
+        [Tooltip("On for models whose Animator plays attack clips: no lunge, weapon swing or spin.")]
+        [SerializeField] bool animatedAttacks;
         [SerializeField] float lungeDistance = 0.3f;
         [SerializeField] float attackDuration = 0.22f;
         [SerializeField] float hitPunch = 0.15f;
@@ -55,11 +58,15 @@ namespace Wuxia.Combat
             if (result.Hit) hitTime = 0f;
         }
 
-        public void PlayAttack() => attackTime = 0f;
+        public void PlayAttack()
+        {
+            if (!animatedAttacks) attackTime = 0f;
+        }
 
         /// <summary>One full turn over <paramref name="duration"/> seconds, for forms that hit all around.</summary>
         public void PlaySpin(float duration)
         {
+            if (animatedAttacks) return;
             spinTime = 0f;
             spinDuration = Mathf.Max(0.1f, duration);
         }

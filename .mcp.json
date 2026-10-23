@@ -3,6 +3,14 @@
     "UnityMCP": {
       "type": "http",
       "url": "http://127.0.0.1:8080/mcp"
+    },
+    "blender": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-for-blender"],
+      "env": {
+        "DISABLE_TELEMETRY": "true"
+      }
     }
   }
 }

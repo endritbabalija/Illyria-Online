@@ -1,0 +1,366 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78f8460f3acbddc42826595db0cd77e8, type: 3}
+  m_Name: PlayerActions
+  m_EditorClassIdentifier: Wuxia::Wuxia.Player.PlayerActionSet
+  imports:
+  - name: sword_inward
+    source: Assets/Characters/Animations/Mixamo/Sword_Slash_Inward.fbx
+    start: 0.8
+    end: 1.6
+    mirror: 0
+    inPlace: 0
+  - name: sword_outward
+    source: Assets/Characters/Animations/Mixamo/Sword_Slash_Outward.fbx
+    start: 0.4
+    end: 1.25
+    mirror: 0
+    inPlace: 0
+  - name: sword_high
+    source: Assets/Characters/Animations/Mixamo/Sword_HighAttack.fbx
+    start: 0.1
+    end: 1
+    mirror: 0
+    inPlace: 1
+  - name: sword_cross
+    source: Assets/Characters/Animations/Mixamo/Sword_CrossSlash.fbx
+    start: 0.5
+    end: 1.35
+    mirror: 0
+    inPlace: 0
+  - name: sword_spin
+    source: Assets/Characters/Animations/Mixamo/Sword_Spin.fbx
+    start: 0.45
+    end: 1.7
+    mirror: 0
+    inPlace: 0
+  - name: bow_release
+    source: Assets/Characters/Animations/Mixamo/Bow_Recoil.fbx
+    start: 0
+    end: 0.7
+    mirror: 1
+    inPlace: 0
+  - name: bow_draw
+    source: Assets/Characters/Animations/Mixamo/Bow_DrawArrow.fbx
+    start: 0
+    end: 1.03
+    mirror: 1
+    inPlace: 0
+  - name: sicas_stab_right
+    source: Assets/Characters/Animations/Mixamo/Sicas_StabRear.fbx
+    start: 0.4
+    end: 1.05
+    mirror: 0
+    inPlace: 0
+  - name: sicas_stab_left
+    source: Assets/Characters/Animations/Mixamo/Sicas_StabLead.fbx
+    start: 0.05
+    end: 0.8
+    mirror: 0
+    inPlace: 0
+  - name: sicas_thrust
+    source: Assets/Characters/Animations/Mixamo/Sicas_ThrustSlash.fbx
+    start: 0.35
+    end: 1.3
+    mirror: 0
+    inPlace: 0
+  - name: sicas_fan
+    source: Assets/Characters/Animations/Mixamo/Sicas_Horizontal.fbx
+    start: 0.5
+    end: 1.4
+    mirror: 0
+    inPlace: 0
+  - name: sicas_whirl
+    source: Assets/Characters/Animations/Mixamo/Sicas_Spin.fbx
+    start: 0.35
+    end: 1.45
+    mirror: 0
+    inPlace: 0
+  - name: staff_combo_1
+    source: Assets/Characters/Animations/Mixamo/Staff_ClubCombo.fbx
+    start: 0.9
+    end: 2.3
+    mirror: 0
+    inPlace: 1
+  - name: staff_combo_2
+    source: Assets/Characters/Animations/Mixamo/Staff_ClubCombo.fbx
+    start: 2.3
+    end: 3.4
+    mirror: 0
+    inPlace: 1
+  - name: staff_combo_3
+    source: Assets/Characters/Animations/Mixamo/Staff_ClubCombo.fbx
+    start: 3.4
+    end: 4.5
+    mirror: 0
+    inPlace: 1
+  - name: staff_slam
+    source: Assets/Characters/Animations/Mixamo/Staff_Downward.fbx
+    start: 0.35
+    end: 1.3
+    mirror: 0
+    inPlace: 0
+  - name: staff_sweep
+    source: Assets/Characters/Animations/Mixamo/Staff_CastSweep.fbx
+    start: 0.1
+    end: 1.25
+    mirror: 0
+    inPlace: 0
+  - name: staff_blast
+    source: Assets/Characters/Animations/Mixamo/Staff_AreaBlast.fbx
+    start: 1.1
+    end: 2.5
+    mirror: 0
+    inPlace: 0
+  - name: staff_ground
+    source: Assets/Characters/Animations/Mixamo/Staff_AreaGround.fbx
+    start: 0.6
+    end: 2
+    mirror: 0
+    inPlace: 0
+  - name: hit
+    source: Assets/Characters/Animations/Mixamo/Hit_Small.fbx
+    start: 0
+    end: 1
+    mirror: 0
+    inPlace: 0
+  - name: death
+    source: Assets/Characters/Animations/Mixamo/Death_Backward.fbx
+    start: 0
+    end: 3.6
+    mirror: 0
+    inPlace: 0
+  - name: revive
+    source: Assets/Characters/Animations/Mixamo/GetUp_FromBack.fbx
+    start: 4.2
+    end: 6.4
+    mirror: 0
+    inPlace: 1
+  - name: drink
+    source: Assets/Characters/Animations/Mixamo/Drink.fbx
+    start: 1.8
+    end: 4.8
+    mirror: 0
+    inPlace: 0
+  extraSources:
+  - Assets/ThirdParty/Quaternius/UniversalAnimationLibrary/AnimationLibrary_Unity_Standard.fbx
+  actions:
+  - state: sword_basic_0
+    clip: sword_inward
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: f3ed9cf9ed06dca48aae73256ad9dace, type: 3}
+  - state: sword_basic_1
+    clip: sword_outward
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 432b487644039694f8609349c231a4a9, type: 3}
+  - state: eagle_strike
+    clip: sword_high
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: f0ef410c29551a74baafe8d3dadd3f42, type: 3}
+  - state: mountain_sweep
+    clip: sword_cross
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 959c12a683abf214b94db46e7997ae0e, type: 3}
+  - state: storm_of_blades
+    clip: sword_spin
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: a8990671fa615be4aa239da775190b49, type: 3}
+  - state: bow_basic_0
+    clip: bow_release
+    next: bow_redraw
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 8d5a98ea71c9a5c4b97b31f4f1cc0aa7, type: 3}
+  - state: bow_redraw
+    clip: bow_draw
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 098914fabd997af4c9f2e5511ee52e9e, type: 3}
+  - state: hawk_shot
+    clip: bow_release
+    next: bow_redraw
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 8d5a98ea71c9a5c4b97b31f4f1cc0aa7, type: 3}
+  - state: rain_of_arrows
+    clip: bow_release
+    next: bow_redraw
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 8d5a98ea71c9a5c4b97b31f4f1cc0aa7, type: 3}
+  - state: thunder_arrow
+    clip: bow_release
+    next: bow_redraw
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 8d5a98ea71c9a5c4b97b31f4f1cc0aa7, type: 3}
+  - state: frontier_volley
+    clip: bow_release
+    next: bow_redraw
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 8d5a98ea71c9a5c4b97b31f4f1cc0aa7, type: 3}
+  - state: sicas_basic_0
+    clip: sicas_stab_right
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: d733e3fe02c46a94785f1a6c4fbc154c, type: 3}
+  - state: sicas_basic_1
+    clip: sicas_stab_left
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 861c9d1af79d59d4e95010749d47b79f, type: 3}
+  - state: swift_cut
+    clip: sicas_thrust
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 42c8a9f0685239340aefbc9bb23c7cdc, type: 3}
+  - state: crescent_fan
+    clip: sicas_fan
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 13d3c197a26d92149887fe11c327a4f6, type: 3}
+  - state: whirlwind
+    clip: sicas_whirl
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: f04c59f212b11364e88a3e93f8edb3a5, type: 3}
+  - state: staff_basic_0
+    clip: staff_combo_1
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 3ca8a67168bb795418af40ce6dff149d, type: 3}
+  - state: staff_basic_1
+    clip: staff_combo_2
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: 4061839508520268033, guid: 3ca8a67168bb795418af40ce6dff149d, type: 3}
+  - state: staff_basic_2
+    clip: staff_combo_3
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -2061910772549006292, guid: 3ca8a67168bb795418af40ce6dff149d, type: 3}
+  - state: mountain_strike
+    clip: staff_slam
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: f5656e9ae4fffcd4db170e3d7f1f380c, type: 3}
+  - state: spring_wave
+    clip: staff_sweep
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: d32c7675e838e614fae89a850ac3c2e5, type: 3}
+  - state: zanas_ring
+    clip: staff_blast
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: edb93e25b81d20d4b91c8152307714ec, type: 3}
+  - state: wrath_of_the_zanas
+    clip: staff_ground
+    next: 
+    body: 0
+    speed: 1
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: c587327a0332ac946a6d3364707b490d, type: 3}
+  - state: hit
+    clip: hit
+    next: 
+    body: 3
+    speed: 1.3
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: a4e3792a3e4718143a1cc93a9525567a, type: 3}
+  - state: death
+    clip: death
+    next: 
+    body: 1
+    speed: 1.2
+    hold: 1
+    resolved: {fileID: -203655887218126122, guid: 7d5fcf3acf3dae045a1a40046344a734, type: 3}
+  - state: revive
+    clip: revive
+    next: 
+    body: 1
+    speed: 1.3
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 2308bd07074961d4a91f51858768a7ed, type: 3}
+  - state: drink
+    clip: drink
+    next: 
+    body: 2
+    speed: 2
+    hold: 0
+    resolved: {fileID: -203655887218126122, guid: 4c3c65a7f84eaae4ba49d149f1f23f31, type: 3}
+  - state: leap
+    clip: Jump_Start
+    next: leap_air
+    body: 1
+    speed: 2.5
+    hold: 0
+    resolved: {fileID: -2440698234662215085, guid: b2419d0f3740e3848ac46f542a0de23e, type: 3}
+  - state: leap_air
+    clip: Jump_Loop
+    next: 
+    body: 1
+    speed: 1
+    hold: 1
+    resolved: {fileID: 4681931746348046975, guid: b2419d0f3740e3848ac46f542a0de23e, type: 3}
+  - state: leap_land
+    clip: Jump_Land
+    next: 
+    body: 1
+    speed: 1.6
+    hold: 0
+    resolved: {fileID: -6520880558266426542, guid: b2419d0f3740e3848ac46f542a0de23e, type: 3}

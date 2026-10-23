@@ -1259,11 +1259,12 @@ MonoBehaviour:
   visual: {fileID: 7033899166739986454}
   weapon: {fileID: 5524888255319859729}
   offHandWeapon: {fileID: 217316839218851362}
+  animatedAttacks: 1
   lungeDistance: 0.25
   attackDuration: 0.22
   hitPunch: 0.15
   hitDuration: 0.15
-  tipOverOnDeath: 1
+  tipOverOnDeath: 0
   downedDuration: 0.35
   downedLift: 0.4
   dazedTilt: 10
@@ -1396,9 +1397,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Wuxia::Wuxia.Player.PlayerAnimator
   animator: {fileID: 1134751043786040198}
+  actions: {fileID: 11400000, guid: db0792bdc78f39547862c6469ae74976, type: 2}
+  combat: {fileID: 3039621169370812101}
+  skills: {fileID: 1509950620201771859}
+  leap: {fileID: 9106646471407479812}
   runClipSpeed: 5
   damping: 0.08
   maxRunPlayback: 1.5
+  attackFill: 0.85
+  minActionSpeed: 0.75
+  maxActionSpeed: 2.2
+  crossFade: 0.08
+  fadeOut: 0.18
+  runningSpeed: 0.6
+  flinchOverAction: 0.4
+  comboResetIntervals: 2
 --- !u!1 &6912951474478187840
 GameObject:
   m_ObjectHideFlags: 0

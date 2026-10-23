@@ -55,6 +55,10 @@ namespace Wuxia.Player
         /// <summary><see cref="Stats"/> was recomputed (gear changed).</summary>
         public event Action StatsChanged;
         public event Action Revived;
+        /// <summary>A basic attack swung or shot at the target (before its result is known).</summary>
+        public event Action Attacked;
+        /// <summary>A potion was drunk, from a quick slot or the bag.</summary>
+        public event Action PotionUsed;
 
         PlayerData data;
         PlayerSkills skills;
@@ -104,6 +108,7 @@ namespace Wuxia.Player
             {
                 nextAttackTime = Time.time + Stats.Attack.interval;
                 visuals.PlayAttack();
+                Attacked?.Invoke();
                 Combatant.BasicAttack(Target);
             }
 
@@ -150,7 +155,8 @@ namespace Wuxia.Player
         public UseBlock UseQuickSlot(int index)
         {
             var result = Items.UseQuickSlot(index, Time.time, this);
-            if (result != UseBlock.None) Tell(Describe(result, Items.Data.FindItem(Items.QuickSlot(index) ?? "")));
+            if (result == UseBlock.None) PotionUsed?.Invoke();
+            else Tell(Describe(result, Items.Data.FindItem(Items.QuickSlot(index) ?? "")));
             return result;
         }
 
@@ -158,7 +164,8 @@ namespace Wuxia.Player
         public UseBlock UseItem(string defId)
         {
             var result = Items.Use(defId, Time.time, this);
-            if (result != UseBlock.None) Tell(Describe(result, Items.Data.FindItem(defId)));
+            if (result == UseBlock.None) PotionUsed?.Invoke();
+            else Tell(Describe(result, Items.Data.FindItem(defId)));
             return result;
         }
 

@@ -42,6 +42,8 @@ namespace Wuxia.Player
         public event Action<string> Notice;
         /// <summary>The buttons now hold different forms (weapon, character or books changed).</summary>
         public event Action SlotsChanged;
+        /// <summary>A form was cast (Spirit spent, about to hit); the character animates it.</summary>
+        public event Action<FormData> FormCast;
 
         readonly SkillSlot[] slots = new SkillSlot[SlotCount];
         readonly List<Combatant> candidates = new List<Combatant>();
@@ -205,6 +207,7 @@ namespace Wuxia.Player
             mover.FaceNow(facing);
             if (form.Shape == SkillShape.Circle) visuals.PlaySpin(form.castTime);
             else visuals.PlayAttack();
+            FormCast?.Invoke(form);
 
             // Copy first: monsters leave MonsterAI.Alive as they die from this very hit.
             candidates.Clear();

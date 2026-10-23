@@ -19,6 +19,12 @@ MonoBehaviour:
     groundEuler: {x: 80, y: 0, z: 0}
     groundSpin: 0
     groundBob: 0
+  - modelKey: WornBow
+    prefab: {fileID: 6692122472031632811, guid: eb7ef81ba0805ea41ba78327f567f89e, type: 3}
+    groundOffset: {x: 0, y: 0.67, z: 0}
+    groundEuler: {x: 0, y: 30, z: 8}
+    groundSpin: 0
+    groundBob: 0
   gold:
     modelKey: Gold
     prefab: {fileID: 8587388732072566000, guid: dc90610e78890d542b7cf1dc8c8a8c65, type: 3}

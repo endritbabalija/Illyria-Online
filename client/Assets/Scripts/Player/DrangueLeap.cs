@@ -27,6 +27,10 @@ namespace Wuxia.Player
         /// <summary>War banners arrive in M8; the leap is disabled while carrying one.</summary>
         public bool CarryingBanner { get; set; }
         public LeapData Rules => GameData.Skills.drangueLeap;
+        /// <summary>A leap (true, onto a ledge) or a ground dash (false) began.</summary>
+        public event System.Action<bool> Started;
+        /// <summary>A leap came down, on the ledge or (refused) back at the take-off point.</summary>
+        public event System.Action Landed;
 
         CharacterController body;
         Phase phase;
@@ -77,12 +81,14 @@ namespace Wuxia.Player
                 landingPoint = landing.Point;
                 body.enabled = false;
                 mover.FaceNow(landingPoint - start);
+                Started?.Invoke(true);
             }
             else
             {
                 phase = Phase.Dash;
                 dashDirection = aim;
                 mover.FaceNow(aim);
+                Started?.Invoke(false);
             }
         }
 
@@ -122,6 +128,7 @@ namespace Wuxia.Player
             if (check == LeapCheck.Ok) Debug.Log($"[Leap] Landed on {ledge.name}");
             else Debug.LogWarning($"[Leap] Landing on {ledge.name} refused ({check}); back to take-off");
             Finish();
+            Landed?.Invoke();
         }
 
         void Finish()

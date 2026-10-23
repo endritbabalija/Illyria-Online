@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6692122472031632811
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8998902977923126259}
+  - component: {fileID: 2480141663195206404}
+  m_Layer: 0
+  m_Name: WornBow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8998902977923126259
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6692122472031632811}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.29343915, y: 0.12546962, z: 0.24366927, w: 0.91584724}
+  m_LocalPosition: {x: -0.0381, y: -0.0303, z: 0.0072}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1000077309922768709}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2480141663195206404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6692122472031632811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce74b752c9c27cb448de56645a881ae1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Wuxia::Wuxia.Player.WeaponActionGrip
+  actionPosition: {x: -0.0381, y: -0.0303, z: 0.0072}
+  actionEuler: {x: 53.4, y: 101.5, z: 15.4}
+--- !u!1001 &4694479358344803838
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8998902977923126259}
+    m_Modifications:
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1545796567988207708, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: -4161369568681901532, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+--- !u!4 &1000077309922768709 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3691024141670661445, guid: 955f8b97292d73c4f826ef71fbb0706d, type: 3}
+  m_PrefabInstance: {fileID: 4694479358344803838}
+  m_PrefabAsset: {fileID: 0}
