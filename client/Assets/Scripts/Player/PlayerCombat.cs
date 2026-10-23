@@ -30,7 +30,7 @@ namespace Wuxia.Player
         [SerializeField] LayerMask interactMask;
         [Tooltip("Sphere radius for tap picking, in metres; forgiving for fingers.")]
         [SerializeField] float tapRadius = 0.6f;
-        [Tooltip("Character from combat.json to play (kreshnik or zanas_chosen) until character select exists.")]
+        [Tooltip("Character from combat.json to play offline (kreshnik or zanas_chosen). Online, the character select picks it.")]
         [SerializeField] string characterId = "kreshnik";
 
         public Combatant Combatant { get; private set; }
@@ -242,7 +242,8 @@ namespace Wuxia.Player
 
         /// <summary>
         /// Play as another character. Offline (test helper): with their starter kit. Online: rejoins
-        /// the zone as that character (created on first use), with their saved progress.
+        /// the zone as that character (which must exist; the character select creates them), with
+        /// their saved progress.
         /// </summary>
         public void SetCharacter(string id)
         {

@@ -4,8 +4,13 @@
 
 var CHARACTERS = 'characters';
 var LEDGER = 'ledger';
+/** One row per character name in use (key: the name in lower case), so names are unique across accounts. */
+var CHARACTER_NAMES = 'character_names';
+/** Owner of server-only rows (Nakama's system user). */
+var SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 /** Owner can read, only the server writes. */
+var NO_READ: nkruntime.ReadPermissionValues = 0;
 var OWNER_READ: nkruntime.ReadPermissionValues = 1;
 var SERVER_WRITE: nkruntime.WritePermissionValues = 0;
 
@@ -93,6 +98,44 @@ function writeCharacter(nk: nkruntime.Nakama, userId: string, save: CharacterSav
     return acks[0].version;
 }
 
+function characterNameKey(name: string): string {
+    return name.toLowerCase();
+}
+
+/**
+ * Saves a new character together with the claim on its name, in one transaction: both rows are
+ * created only if they don't exist yet. Throws when either does (the caller checks which).
+ */
+function createCharacterSave(nk: nkruntime.Nakama, userId: string, save: CharacterSave, ledger: LedgerEntry[]): string {
+    var nameClaim: nkruntime.StorageWriteRequest = {
+        collection: CHARACTER_NAMES,
+        key: characterNameKey(save.name),
+        userId: SYSTEM_USER_ID,
+        value: { userId: userId, characterId: save.characterId, name: save.name },
+        version: '*',
+        permissionRead: NO_READ,
+        permissionWrite: SERVER_WRITE,
+    };
+    var nowMs = Date.now();
+    var writes: nkruntime.StorageWriteRequest[] = [{
+        collection: CHARACTERS,
+        key: save.characterId,
+        userId: userId,
+        value: save,
+        version: '*',
+        permissionRead: OWNER_READ,
+        permissionWrite: SERVER_WRITE,
+    }, nameClaim];
+    ledger.forEach(function (entry) { writes.push(ledgerWrite(userId, save.characterId, null, entry, nowMs, nk.uuidv4())); });
+    return nk.storageWrite(writes)[0].version;
+}
+
+/** Is this name (any case) held by a character? */
+function isCharacterNameTaken(nk: nkruntime.Nakama, name: string): boolean {
+    var rows = nk.storageRead([{ collection: CHARACTER_NAMES, key: characterNameKey(name), userId: SYSTEM_USER_ID }]);
+    return !!rows && rows.length > 0;
+}
+
 /** Deletes a character, writing ledger rows for everything it owned in the same transaction. */
 function deleteCharacter(nk: nkruntime.Nakama, userId: string, stored: StoredCharacter): void {
     var nowMs = Date.now();
@@ -115,5 +158,10 @@ function deleteCharacter(nk: nkruntime.Nakama, userId: string, stored: StoredCha
             kind: 'goldOut', reason: reason, gold: save.belongings.gold, goldAfter: 0,
             itemId: null, defId: null, rarity: null, count: 0,
         }, nowMs, nk.uuidv4()));
-    nk.multiUpdate(null, writes, [{ collection: CHARACTERS, key: save.characterId, userId: userId, version: stored.version }], null);
+    var deletes: nkruntime.StorageDeleteRequest[] = [{ collection: CHARACTERS, key: save.characterId, userId: userId, version: stored.version }];
+    // Free the name, if this character holds it (characters made before names were claimed don't).
+    var claim = nk.storageRead([{ collection: CHARACTER_NAMES, key: characterNameKey(save.name), userId: SYSTEM_USER_ID }]);
+    if (claim && claim.length > 0 && claim[0].value.userId === userId && claim[0].value.characterId === save.characterId)
+        deletes.push({ collection: CHARACTER_NAMES, key: claim[0].key, userId: SYSTEM_USER_ID, version: claim[0].version });
+    nk.multiUpdate(null, writes, deletes, null);
 }

@@ -152,6 +152,17 @@ namespace Wuxia.World
             }
         }
 
+        /// <summary>Online: forgets every server drop (left the channel or lost the connection).</summary>
+        public void ClearNet()
+        {
+            foreach (var drop in netDrops.Values)
+            {
+                var index = active.IndexOf(drop);
+                if (index >= 0) Release(index);
+            }
+            netDrops.Clear();
+        }
+
         Drop SpawnOne(LootDrop loot, Vector3 from, Vector3 rest, string source)
         {
             var drop = freeDrops.Count > 0 ? freeDrops.Pop() : new Drop();

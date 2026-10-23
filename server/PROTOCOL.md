@@ -18,19 +18,24 @@ Payloads and answers are JSON. Errors come back as Nakama RPC errors (HTTP 400/4
 | RPC | Input | Answer |
 | --- | --- | --- |
 | `character_list` | `{}` | `{characters: [summary], available: [{id, name, weapons}]}` |
-| `character_create` | `{characterId, name}` | `{character: summary}`; 409 if the account already has that character, 400 for a bad name (2–20 letters, digits, spaces, `'` or `-`) |
+| `character_create` | `{characterId, name}` | `{character: summary}`; 409 if the account already has that character or another character holds the name (names are unique in any case), 400 for a bad name (2–20 letters, digits, spaces, `'` or `-`) |
 | `character_load` | `{characterId}` | `{character, online, stats}`: the full save (gold, bag, gear, quick slots, skills, kills, last location, HP/Spirit) and its computed stats |
 | `character_delete` | `{characterId}` | `{}`; refused while the character is in a zone |
 | `zone_list` | `{zone}` | `{zone, channels: [{matchId, channel, players, cap}]}` |
 | `zone_join` | `{zone, channel?}` | `{matchId, zone, channel}`: the lowest channel with room (or the one asked for), opening a new one when all are full |
 
-`summary` = `{characterId, name, weaponType, gold, kills, zone, online}`. One save per character
+`summary` = `{characterId, name, weaponType, gold, kills, zone, online}`. A name is claimed in
+collection `character_names` (key: the name in lower case, owned by the system user, no client
+access) in the same write as the character, and freed when the character is deleted. One save per character
 kind per account (`kreshnik`, `zanas_chosen`). New characters get their `starterKits` entry from
 `items.json` and, while `skills.json` `dev.learnAllBooks` is on, every book their weapons use plus
 `dev.startingSkillPoints`.
 
 Zones (`shared/gamedata/zones.json`): `dardana` (the town: safe, no monsters, cap 100;
 placeholder layout until the town scene exists) and `oak_valley` (cap 50).
+
+The Unity client shows a character select after logging in (`character_list`; Create calls
+`character_create` with the typed name, then joins).
 
 ## 3. Join a zone
 
@@ -39,6 +44,12 @@ The join is refused with a message when the channel is full, the character doesn
 character is still held by another zone (its previous match hasn't saved yet, or crashed less than
 `server.sessionLockSeconds` ago): wait a moment and retry. On success the first message is
 **Welcome**.
+
+**Reconnecting.** When the socket drops, Nakama removes the presence from the match, which saves
+the character and releases its lock. The client then logs in again (a new session only if the old
+one expired), opens a new socket and joins a channel as the same character (`zone_join`, then the
+join above, retrying while the lock is still held), backing off 1, 2, 4… up to 10 s between
+attempts. The Welcome restores the saved position, HP, items and skills.
 
 While joined, the character's save is locked to that match; the match saves changes about once a
 second (`server.saveInterval`) together with their ledger rows, and once more on leave.

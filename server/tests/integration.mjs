@@ -27,15 +27,25 @@ async function main() {
 
     const listA = await rpc(tokenA, 'character_list');
     check(listA.characters.length === 0 && listA.available.length === 2, 'a new account has no characters and 2 to choose from');
-    const createdA = await rpc(tokenA, 'character_create', { characterId: 'kreshnik', name: 'Alba' });
+    const createdA = await rpc(tokenA, 'character_create', { characterId: 'kreshnik', name: 'Alba' + run });
     check(createdA.character.gold === 100 && createdA.character.weaponType === 'sword', 'Alba the Kreshnik starts with 100 gold and a sword');
-    await rpc(tokenB, 'character_create', { characterId: 'zanas_chosen', name: 'Bora' });
+    await rpc(tokenB, 'character_create', { characterId: 'zanas_chosen', name: 'Bora' + run });
     let duplicate = null;
     try { await rpc(tokenA, 'character_create', { characterId: 'kreshnik', name: 'Again' }); } catch (e) { duplicate = e; }
     check(duplicate && duplicate.status === 409, 'a second Kreshnik on the same account is refused (409)');
     let badName = null;
     try { await rpc(tokenA, 'character_create', { characterId: 'zanas_chosen', name: '<b>' }); } catch (e) { badName = e; }
     check(badName && badName.status === 400, 'a bad name is refused (400)');
+    let taken = null;
+    try { await rpc(tokenB, 'character_create', { characterId: 'kreshnik', name: 'alba ' + run }); } catch (e) { taken = e; }
+    check(!taken, 'a fresh name is free');
+    taken = null;
+    try { await rpc(tokenA, 'character_create', { characterId: 'zanas_chosen', name: 'ALBA ' + run.toUpperCase() }); } catch (e) { taken = e; }
+    check(taken && taken.status === 409 && /taken/.test(taken.message), 'a name another account holds is refused in any case (409)');
+    await rpc(tokenB, 'character_delete', { characterId: 'kreshnik' });
+    await rpc(tokenA, 'character_create', { characterId: 'zanas_chosen', name: 'Alba ' + run });
+    check(true, 'deleting a character frees its name');
+    await rpc(tokenA, 'character_delete', { characterId: 'zanas_chosen' });
 
     // ---- the same channel ---------------------------------------------------------------------
     const joinA = await rpc(tokenA, 'zone_join', { zone: 'oak_valley' });
@@ -141,7 +151,7 @@ async function main() {
 
     const ledger = await http('/v2/storage/ledger?limit=100&user_id=' + (killer === a ? a.you : b.you), { method: 'GET', token: killer.token });
     const rows = (ledger.objects || []).map((o) => JSON.parse(o.value));
-    check(rows.filter((r) => r.reason === 'starter kit').length === 5, 'the starter kit is in the ledger (5 rows)');
+    check(rows.filter((r) => r.reason === 'starter kit' && r.character === (killer === a ? 'kreshnik' : 'zanas_chosen')).length === 5, 'the starter kit is in the ledger (5 rows)');
     if (drops.length > 0) check(rows.some((r) => r.reason === 'loot: Grey Wolf'), 'the loot is in the ledger');
 
     // ---- rejoin puts you back --------------------------------------------------------------

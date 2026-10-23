@@ -159,6 +159,15 @@ namespace Wuxia.Data
             throw new ArgumentException($"No book '{id}' in skill data");
         }
 
+        /// <summary>The form with this id in any book, or null.</summary>
+        public FormData FindForm(string id)
+        {
+            foreach (var b in books)
+                foreach (var f in b.forms)
+                    if (f.id == id) return f;
+            return null;
+        }
+
         public StatusData GetStatus(string id)
         {
             foreach (var s in statuses)

@@ -30,11 +30,17 @@ namespace Wuxia.Net
     public class NetZone : MonoBehaviour
     {
         const string DeviceIdKey = "nakama.device_id";
+        static readonly System.Reflection.FieldInfo SocketErrorField =
+            typeof(Socket).GetField("ReceivedError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         public static NetZone Instance { get; private set; }
 
-        /// <summary>In a server match: the server decides combat, items and loot.</summary>
-        public static bool Online => Instance != null && Instance.InMatch;
+        /// <summary>
+        /// In a server match, or reconnecting to one: the server decides combat, items and loot. While
+        /// reconnecting nothing is sent (actions are refused with a notice), but nothing falls back to
+        /// offline rules either.
+        /// </summary>
+        public static bool Online => Instance != null && (Instance.InMatch || Instance.reconnecting && Instance.playing != null);
 
         /// <summary>Connecting (or connected): local monster spawners wait instead of spawning.</summary>
         public static bool WillConnect => Instance != null && Instance.isActiveAndEnabled && Instance.connectOnStart && !Instance.offline;
@@ -56,6 +62,9 @@ namespace Wuxia.Net
         [Tooltip("Seconds between joins while the character is still held by another zone.")]
         [SerializeField] float joinRetryDelay = 2f;
         [SerializeField] int joinRetries = 8;
+        [Tooltip("Seconds before the first reconnect attempt after a dropped connection; doubles per failed attempt.")]
+        [SerializeField] float reconnectDelay = 1f;
+        [SerializeField] float reconnectMaxDelay = 10f;
         [Tooltip("Seconds between position updates while moving.")]
         [SerializeField] float sendInterval = 0.1f;
 
@@ -64,7 +73,16 @@ namespace Wuxia.Net
         [SerializeField] PlayerSkills skills;
         [SerializeField] DrangueLeap leap;
         [SerializeField] GroundLoot loot;
+        [SerializeField] SkillFx skillFx;
+        [Tooltip("The player's clips and weapon models, copied for other players.")]
+        [SerializeField] PlayerAnimator playerAnimator;
+        [SerializeField] PlayerAppearance playerAppearance;
         [SerializeField] Camera viewCamera;
+        [Tooltip("Shown after logging in, and from the Skills panel: pick or create the character to play.")]
+        [SerializeField] CharacterSelect characterSelect;
+        [Tooltip("Shown while the connection is lost and being restored.")]
+        [SerializeField] GameObject connectionBanner;
+        [SerializeField] Text connectionText;
         [Tooltip("Character models for other players, by character id.")]
         [SerializeField] GameObject kreshnikModel;
         [SerializeField] GameObject zanasChosenModel;
@@ -79,6 +97,11 @@ namespace Wuxia.Net
         string you;
         bool offline;
         bool joining;
+        bool reconnecting;
+        bool rejoined;
+        bool quitting;
+        /// <summary>The character we play (or are rejoining as); null until one is chosen.</summary>
+        string playing;
         int nextRid;
         float nextSend;
         Vector3 lastSentPosition;
@@ -109,11 +132,13 @@ namespace Wuxia.Net
 
         void Start()
         {
+            HideBanner();
             if (connectOnStart) _ = StartOnline();
         }
 
         void OnDestroy()
         {
+            quitting = true;
             if (Instance == this) Instance = null;
             if (socket != null) _ = socket.CloseAsync();
         }
@@ -122,51 +147,106 @@ namespace Wuxia.Net
 
         async Task StartOnline()
         {
+            NetCharacterList list;
             try
             {
-                // Only reaching the server and logging in are timed; once in, a join may wait out
-                // a lock (the character still saving in the zone it just left), within joinRetries.
+                // Only reaching the server and logging in are timed; once in, the player takes their
+                // time choosing, and a join may wait out a lock (the character still saving in the zone
+                // it just left), within joinRetries.
                 var timeout = Task.Delay(TimeSpan.FromSeconds(connectTimeout));
                 var connect = Connect();
                 if (await Task.WhenAny(connect, timeout) == timeout) throw new TimeoutException($"no answer from {scheme}://{host}:{port} in {connectTimeout:0}s");
                 await connect;
-                await JoinAs(player.Character.id);
+                list = await ListCharacters();
             }
             catch (Exception e)
             {
                 GoOffline(e.Message);
+                return;
+            }
+
+            if (characterSelect != null) characterSelect.Show(list.characters, player.Character.id, false, Choose);
+            else
+            {
+                // No select screen in this scene: play the Player's character, named after it.
+                try { await Choose(player.Character.id, HasCharacter(list, player.Character.id) ? null : player.Character.name); }
+                catch (Exception e) { Debug.LogError($"[Net] Joining failed: {e.Message}"); }
             }
         }
 
         async Task Connect()
         {
-            client = new Client(scheme, host, port, serverKey, UnityWebRequestAdapter.Instance) { Timeout = 5 };
-            session = await client.AuthenticateDeviceAsync(DeviceId());
+            if (client == null) client = new Client(scheme, host, port, serverKey, UnityWebRequestAdapter.Instance) { Timeout = 5 };
+            if (session == null || session.HasExpired(DateTime.UtcNow.AddMinutes(1)))
+                session = await client.AuthenticateDeviceAsync(DeviceId());
+            if (socket != null)
+            {
+                // A dropped socket is replaced, not reused; the old one's events must not reach us.
+                socket.ReceivedMatchState -= OnMatchState;
+                socket.Closed -= OnClosed;
+            }
             socket = client.NewSocket(useMainThread: true);
+            // Nakama's socket starts with a handler that logs every receive error with Debug.LogError;
+            // a dropped connection is expected here (we reconnect), so it becomes a warning.
+            if (socket is Socket) SocketErrorField?.SetValue(socket, null);
+            socket.ReceivedError += e => Debug.LogWarning($"[Net] Socket error: {e.Message}");
             socket.ReceivedMatchState += OnMatchState;
             socket.Closed += OnClosed;
-            await socket.ConnectAsync(session, true);
+            await socket.ConnectAsync(session, true, 5);
             Debug.Log($"[Net] Logged in at {scheme}://{host}:{port} as user {session.UserId}");
         }
 
-        /// <summary>Makes sure the account has this character, then joins a channel of the zone as it.</summary>
+        async Task<NetCharacterList> ListCharacters()
+        {
+            var list = JsonUtility.FromJson<NetCharacterList>((await client.RpcAsync(session, "character_list", "{}")).Payload);
+            if (list.characters == null) list.characters = new NetCharacterSummary[0];
+            return list;
+        }
+
+        static bool HasCharacter(NetCharacterList list, string characterId) =>
+            Array.FindIndex(list.characters, c => c.characterId == characterId) >= 0;
+
+        /// <summary>
+        /// The character select's choice: creates the character first when <paramref name="newName"/> is
+        /// given, then plays it (leaving the current channel for another character). Throws with the
+        /// server's wording when the name is refused or the join fails; the Welcome closes the screen.
+        /// </summary>
+        public async Task Choose(string characterId, string newName)
+        {
+            if (joining) throw new InvalidOperationException("Already joining; wait a moment");
+            if (socket == null || !socket.IsConnected) throw new InvalidOperationException(reconnecting ? "Reconnecting to the server…" : "Not connected to the server");
+            if (!string.IsNullOrEmpty(newName))
+            {
+                await client.RpcAsync(session, "character_create", Json.Object("characterId", characterId, "name", newName));
+                Debug.Log($"[Net] Created {newName} ({characterId})");
+                // So a join that fails now offers Play, not Create, on the next try.
+                if (characterSelect != null && characterSelect.IsOpen) characterSelect.Refresh((await ListCharacters()).characters);
+            }
+            if (InMatch && characterId == player.Character.id)
+            {
+                if (characterSelect != null) characterSelect.Hide();
+                return;
+            }
+            if (InMatch)
+            {
+                var leaving = matchId;
+                LeaveLocally();
+                await socket.LeaveMatchAsync(leaving);
+            }
+            playing = characterId;
+            await JoinAs(characterId);
+        }
+
+        /// <summary>Joins a channel of the zone as this character, retrying while it's still held elsewhere.</summary>
         async Task JoinAs(string characterId)
         {
             joining = true;
             try
             {
-                var list = JsonUtility.FromJson<NetCharacterList>((await client.RpcAsync(session, "character_list", "{}")).Payload);
-                if (list.characters == null || Array.FindIndex(list.characters, c => c.characterId == characterId) < 0)
-                {
-                    var name = PlayerPrefs.GetString("wuxia.name." + characterId, GameData.Combat.GetCharacter(characterId).name);
-                    await client.RpcAsync(session, "character_create", Json.Object("characterId", characterId, "name", name));
-                    Debug.Log($"[Net] Created {name} ({characterId})");
-                }
-
                 // A character still held by the zone we just left (it's saving) is refused for a moment.
                 for (var attempt = 0; ; attempt++)
                 {
-                    if (offline) return;
+                    if (offline || quitting) return;
                     var join = JsonUtility.FromJson<NetZoneJoin>((await client.RpcAsync(session, "zone_join", Json.Object("zone", zoneId))).Payload);
                     try
                     {
@@ -175,7 +255,7 @@ namespace Wuxia.Net
                         Channel = join.channel.ToString();
                         return;
                     }
-                    catch (Exception e) when (attempt < joinRetries)
+                    catch (Exception e) when (attempt < joinRetries && socket.IsConnected)
                     {
                         Debug.Log($"[Net] Join refused ({e.Message}); retrying in {joinRetryDelay:0}s");
                         await Task.Delay(TimeSpan.FromSeconds(joinRetryDelay));
@@ -188,22 +268,23 @@ namespace Wuxia.Net
             }
         }
 
-        /// <summary>Online "play the other character": leaves the channel and rejoins as that character.</summary>
+        /// <summary>Online "play the other character" (scripts): leaves the channel and rejoins as that character, which must exist.</summary>
         public async void SwitchCharacter(string characterId)
         {
-            if (!InMatch || joining) return;
-            var leaving = matchId;
-            LeaveLocally();
-            try
-            {
-                await socket.LeaveMatchAsync(leaving);
-                await JoinAs(characterId);
-            }
+            try { await Choose(characterId, null); }
             catch (Exception e)
             {
                 Debug.LogError($"[Net] Switching to {characterId} failed: {e.Message}");
                 player.Tell("Couldn't switch character; see the Console");
             }
+        }
+
+        /// <summary>Opens the character select over the zone (the Skills panel's button); closing it keeps playing.</summary>
+        public async void OpenCharacterSelect()
+        {
+            if (characterSelect == null || !InMatch) return;
+            try { characterSelect.Show((await ListCharacters()).characters, player.Character.id, true, Choose); }
+            catch (Exception e) { player.Tell("Couldn't list your characters: " + e.Message); }
         }
 
         void GoOffline(string reason)
@@ -217,21 +298,82 @@ namespace Wuxia.Net
 
         void OnClosed(string reason)
         {
-            if (!InMatch) return;
+            if (quitting || offline || reconnecting) return;
+            var wasIn = InMatch;
             LeaveLocally();
-            Debug.LogWarning($"[Net] Disconnected: {reason}");
-            player.Tell("Disconnected from the server");
+            Debug.LogWarning($"[Net] Disconnected{(wasIn ? $" from {ZoneSession.Instance.ZoneName} channel {Channel}" : "")}{(string.IsNullOrEmpty(reason) ? "" : ": " + reason)}");
+            _ = Reconnect();
+        }
+
+        /// <summary>
+        /// After a dropped connection: logs in again (a new session if it ran out), opens a new socket
+        /// and rejoins the zone as the same character, backing off between attempts until it works.
+        /// The server saved the character when the old socket left, so the rejoin picks up from there.
+        /// Meanwhile <see cref="Online"/> stays true: nothing falls back to offline rules, and actions
+        /// are refused with a notice.
+        /// </summary>
+        async Task Reconnect()
+        {
+            reconnecting = true;
+            ShowBanner("Connection lost · reconnecting…");
+            try
+            {
+                for (var attempt = 1; !quitting && !offline; attempt++)
+                {
+                    try
+                    {
+                        await Connect();
+                        if (playing != null)
+                        {
+                            rejoined = true;
+                            await JoinAs(playing);
+                        }
+                        else
+                        {
+                            if (characterSelect != null && characterSelect.IsOpen) characterSelect.Refresh((await ListCharacters()).characters);
+                            HideBanner();
+                        }
+                        Debug.Log($"[Net] Reconnected after {attempt} attempt(s)");
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        var wait = Mathf.Min(reconnectMaxDelay, reconnectDelay * Mathf.Pow(2f, attempt - 1));
+                        Debug.Log($"[Net] Reconnect attempt {attempt} failed ({e.Message}); next in {wait:0}s");
+                        ShowBanner($"Connection lost · reconnecting (attempt {attempt + 1})…");
+                        await Task.Delay(TimeSpan.FromSeconds(wait));
+                    }
+                }
+            }
+            finally
+            {
+                reconnecting = false;
+            }
+        }
+
+        void ShowBanner(string text)
+        {
+            if (connectionBanner == null) return;
+            connectionBanner.SetActive(true);
+            if (connectionText != null) connectionText.text = text;
+        }
+
+        void HideBanner()
+        {
+            if (connectionBanner != null) connectionBanner.SetActive(false);
         }
 
         /// <summary>Forgets the channel's monsters, players and drops (leaving, or before a rejoin's Welcome).</summary>
         void LeaveLocally()
         {
             InMatch = false;
+            matchId = null;
             foreach (var m in monsters.Values) if (m != null) Destroy(m.gameObject);
             monsters.Clear();
             foreach (var p in players.Values) if (p != null) Destroy(p.gameObject);
             players.Clear();
             pending.Clear();
+            if (loot != null) loot.ClearNet();
         }
 
         string DeviceId()
@@ -286,6 +428,11 @@ namespace Wuxia.Net
         /// <summary>An item or book action (a Json.Object with "a"); a refusal shows the server's wording as a notice.</summary>
         public void SendAction(string json, Action<NetResult> answered = null)
         {
+            if (!InMatch)
+            {
+                player.Tell("Not connected; reconnecting to the server…");
+                return;
+            }
             var rid = ++nextRid;
             if (answered != null) pending[rid] = answered;
             Send(NetOp.Action, "{\"rid\":" + rid + "," + json.Substring(1));
@@ -307,9 +454,7 @@ namespace Wuxia.Net
                             _ = socket.LeaveMatchAsync(state.MatchId);
                             return;
                         }
-                        // Can arrive before JoinMatchAsync's answer is handled.
-                        matchId = state.MatchId;
-                        OnWelcome(JsonUtility.FromJson<NetWelcome>(json));
+                        OnWelcome(JsonUtility.FromJson<NetWelcome>(json), state.MatchId);
                         break;
                     case NetOp.Snapshot: if (InMatch) OnSnapshot(JsonUtility.FromJson<NetSnapshot>(json)); break;
                     case NetOp.Events: if (InMatch) OnEvents(JsonUtility.FromJson<NetEvents>(json)); break;
@@ -326,9 +471,11 @@ namespace Wuxia.Net
             }
         }
 
-        void OnWelcome(NetWelcome w)
+        void OnWelcome(NetWelcome w, string joined)
         {
             LeaveLocally();
+            // Can arrive before JoinMatchAsync's answer is handled.
+            matchId = joined;
             you = w.you;
             ApplySelf(w.self);
             foreach (var p in w.players)
@@ -343,8 +490,12 @@ namespace Wuxia.Net
             }
             foreach (var m in w.monsters) SpawnMonster(m);
             InMatch = true;
-            Debug.Log($"[Net] Joined {ZoneSession.Instance.ZoneName} channel {Channel} as {w.self.name} ({w.self.characterId}): {players.Count} other player(s), {monsters.Count} monsters");
-            player.Tell($"Online · {ZoneSession.Instance.ZoneName} channel {Channel}");
+            playing = w.self.characterId;
+            HideBanner();
+            if (characterSelect != null) characterSelect.Hide();
+            Debug.Log($"[Net] {(rejoined ? "Rejoined" : "Joined")} {ZoneSession.Instance.ZoneName} channel {Channel} as {w.self.name} ({w.self.characterId}): {players.Count} other player(s), {monsters.Count} monsters");
+            player.Tell($"{(rejoined ? "Reconnected" : "Online")} · {ZoneSession.Instance.ZoneName} channel {Channel}");
+            rejoined = false;
         }
 
         void ApplySelf(NetSelf s)
@@ -375,7 +526,11 @@ namespace Wuxia.Net
                         if (skills.State != null) skills.State.SetSpirit(p.sp);
                         if (p.dead && !player.IsDead) player.Combatant.Kill(null);
                     }
-                    else if (players.TryGetValue(p.id, out var remote)) remote.SetState(Ground(new Vector3(p.x, p.y, p.z)), p.yaw, p.dead);
+                    else if (players.TryGetValue(p.id, out var remote))
+                    {
+                        remote.SetWeapon(p.weapon);
+                        remote.SetState(Ground(new Vector3(p.x, p.y, p.z)), p.yaw, p.dead);
+                    }
                 }
             if (snap.m != null)
                 foreach (var m in snap.m)
@@ -409,6 +564,14 @@ namespace Wuxia.Net
                         if (monsters.TryGetValue(e.id, out var gone) && gone != null) gone.DespawnRemote();
                         break;
                     case "spawn": if (e.monster != null) SpawnMonster(e.monster); break;
+                    case "cast": OnCast(e); break;
+                    case "leap":
+                        if (e.id != you && players.TryGetValue(e.id ?? "", out var leaper) && leaper != null && e.from != null && e.to != null && e.from.Length == 3 && e.to.Length == 3)
+                            leaper.Leap(new Vector3(e.from[0], e.from[1], e.from[2]), new Vector3(e.to[0], e.to[1], e.to[2]), e.dur, !string.IsNullOrEmpty(e.ledge));
+                        break;
+                    case "gear":
+                        if (players.TryGetValue(e.id ?? "", out var geared) && geared != null) geared.SetWeapon(e.weapon);
+                        break;
                 }
             }
         }
@@ -428,6 +591,9 @@ namespace Wuxia.Net
                 }
             }
             if (e.src == you && e.kind == "basic") player.PlayServerAttack(target);
+            else if (e.kind == "basic" && target != null && players.TryGetValue(e.src ?? "", out var striker) && striker != null)
+                striker.PlayAttack(target.transform.position);
+            if (!e.miss && players.TryGetValue(e.dst ?? "", out var struck) && struck != null) struck.Flinch();
             if (target == null) return;
             target.ReceiveHit(attacker, new AttackResult
             {
@@ -436,6 +602,20 @@ namespace Wuxia.Net
                 Damage = e.miss ? 0 : e.dmg,
                 Kind = e.kind == "skill" ? HitKind.Skill : e.kind == "poison" ? HitKind.Poison : HitKind.Basic,
             });
+        }
+
+        /// <summary>Another player's form went off: their cast animation and its area on the ground (ours played on the press).</summary>
+        void OnCast(NetEvent e)
+        {
+            if (e.src == you || !players.TryGetValue(e.src ?? "", out var caster) || caster == null) return;
+            var form = GameData.Skills.FindForm(e.form);
+            if (form == null) return;
+            var aimed = CombatantOf(e.tgt);
+            caster.PlayForm(form, aimed != null ? aimed.transform.position : (Vector3?)null);
+            if (skillFx == null) return;
+            var origin = caster.transform.position;
+            var facing = e.dir != null && e.dir.Length == 2 ? new Vector3(e.dir[0], 0f, e.dir[1]) : caster.transform.forward;
+            skillFx.Play(form, origin, facing.normalized, aimed != null ? aimed.transform.position : origin);
         }
 
         void OnDie(NetEvent e)
@@ -526,7 +706,8 @@ namespace Wuxia.Net
             avatar.name = $"Player {p.name}";
             foreach (var c in avatar.GetComponentsInChildren<Collider>()) c.enabled = false;
             var remote = avatar.AddComponent<RemotePlayer>();
-            remote.Init(p.id, p.name, p.character, Ground(new Vector3(p.x, p.y, p.z)), p.yaw);
+            remote.Init(p.id, p.name, p.character, Ground(new Vector3(p.x, p.y, p.z)), p.yaw, playerAnimator, playerAppearance);
+            remote.SetWeapon(p.weapon);
             remote.SetState(Ground(new Vector3(p.x, p.y, p.z)), p.yaw, p.dead);
             if (labelTemplate != null && viewCamera != null)
             {

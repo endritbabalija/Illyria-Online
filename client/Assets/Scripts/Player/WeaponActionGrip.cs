@@ -6,7 +6,7 @@ namespace Wuxia.Player
     /// Turns a held weapon model from its carry pose (the prefab root's local pose under the weapon
     /// pivot) to a second grip while the player attacks. The bow needs it: carried upright at the side,
     /// but the drawing hand turns the fist, so on the draw it gets a grip that stands it upright with
-    /// its back to the target. Away from a player (item icons, ground drops) it does nothing.
+    /// its back to the target. Away from a character (item icons, ground drops) it does nothing. Works under other players too (<see cref="IAttackPose"/>).
     /// </summary>
     public class WeaponActionGrip : MonoBehaviour
     {
@@ -15,14 +15,14 @@ namespace Wuxia.Player
         [Tooltip("Local rotation under the weapon pivot while attacking.")]
         [SerializeField] Vector3 actionEuler;
 
-        PlayerAnimator player;
+        IAttackPose player;
         Vector3 carryPosition;
         Quaternion carryRotation;
         Quaternion actionRotation;
 
         void Start()
         {
-            player = GetComponentInParent<PlayerAnimator>();
+            player = GetComponentInParent<IAttackPose>();
             carryPosition = transform.localPosition;
             carryRotation = transform.localRotation;
             actionRotation = Quaternion.Euler(actionEuler);

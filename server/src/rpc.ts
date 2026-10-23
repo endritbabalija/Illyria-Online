@@ -41,7 +41,7 @@ function rpcCharacterList(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: 
     });
 }
 
-/** {characterId, name} → {character: summary}. One character of each kind per account. */
+/** {characterId, name} → {character: summary}. One character of each kind per account; names are unique (any case). */
 function rpcCharacterCreate(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string {
     var userId = rpcUser(ctx);
     var data = loadGameData(nk);
@@ -49,11 +49,16 @@ function rpcCharacterCreate(ctx: nkruntime.Context, logger: nkruntime.Logger, nk
     var characterId = rpcCharacterId(data, input.characterId);
     var name = cleanCharacterName(input.name);
     if (!name) throw rpcError(nkruntime.Codes.INVALID_ARGUMENT, 'name must be 2-20 letters, digits, spaces, apostrophes or hyphens');
+    var alreadyHave = function () { return rpcError(nkruntime.Codes.ALREADY_EXISTS, 'you already have ' + getCharacter(data, characterId).name); };
+    var nameTaken = function () { return rpcError(nkruntime.Codes.ALREADY_EXISTS, 'the name ' + name + ' is taken'); };
+    if (readCharacter(nk, data, userId, characterId)) throw alreadyHave();
+    if (isCharacterNameTaken(nk, name as string)) throw nameTaken();
     var created = createCharacter(data, characterId, name, function () { return nk.uuidv4(); }, Date.now());
     try {
-        writeCharacter(nk, userId, created.save, '*', created.ledger, null);
+        createCharacterSave(nk, userId, created.save, created.ledger);
     } catch (e) {
-        throw rpcError(nkruntime.Codes.ALREADY_EXISTS, 'you already have ' + getCharacter(data, characterId).name);
+        // Lost a race: the character or the name was created a moment ago.
+        throw readCharacter(nk, data, userId, characterId) ? alreadyHave() : nameTaken();
     }
     created.ledger.forEach(function (entry) { logger.debug('%s %s', userId, describeLedger(data, entry)); });
     logger.info('Character created: %s (%s) for %s', name, characterId, userId);

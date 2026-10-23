@@ -5,26 +5,26 @@ using Wuxia.Data;
 namespace Wuxia.Player
 {
     /// <summary>
+    /// Whatever drives a held weapon's pose: how far an attack is blended in (0..1), read by
+    /// <see cref="WeaponActionGrip"/>. The player's <see cref="PlayerAnimator"/> and other players.
+    /// </summary>
+    public interface IAttackPose
+    {
+        float AttackWeight { get; }
+    }
+
+    /// <summary>
     /// Drives the character model's Animator. Locomotion comes from how fast the player actually moves
     /// on the ground: a 1D blend from idle (0 m/s) to run, with the run sped up past its authored speed
     /// so the feet keep pace. Measures movement itself, so joystick, auto-approach and dashes all
     /// animate alike.
-    /// One-shot actions from <see cref="PlayerActionSet"/> play on two action layers with the same
-    /// states: the whole body while standing, the upper body while the legs run, cross-faded by how
-    /// fast the player moves. Basic attacks cycle through <c>&lt;weapon&gt;_basic_&lt;n&gt;</c>, skill
-    /// forms play the state named after the form (else a basic attack), each sped up to fit the attack
-    /// interval or cast time. Hits flinch on their own upper-body layer; death holds until the revive.
+    /// One-shot actions from <see cref="PlayerActionSet"/> (attacks, forms, hits, death, revive,
+    /// potions, leaps) play through <see cref="CharacterActions"/>, fed by the player's events.
     /// </summary>
-    public class PlayerAnimator : MonoBehaviour
+    public class PlayerAnimator : MonoBehaviour, IAttackPose
     {
         static readonly int SpeedId = Animator.StringToHash("Speed");
         static readonly int RunPlaybackId = Animator.StringToHash("RunPlayback");
-        static readonly int ActionSpeedId = Animator.StringToHash("ActionSpeed");
-
-        // Layer order the builder creates on the controller.
-        const int FullLayer = 1;
-        const int UpperLayer = 2;
-        const int FlinchLayer = 3;
 
         [SerializeField] Animator animator;
         [SerializeField] PlayerActionSet actions;
@@ -54,26 +54,33 @@ namespace Wuxia.Player
         [SerializeField] float comboResetIntervals = 2f;
 
         Vector3 lastPosition;
-        float groundSpeed;
-        float upperBlend;
-
         Combatant combatant;
-        PlayerActionSet.Action current;
-        ActionBody body;      // of the current action, kept while it fades out
-        float actionEnd;      // Time.time the current action (with its chain) finishes; +inf while held
-        float actionWeight;
-        float flinchEnd;
-        float flinchLength;
-        float flinchWeight;
-
-        string comboWeapon;
-        int comboIndex;
-        float comboResetAt;
+        CharacterActions play;
 
         /// <summary>How far an attack or skill form is blended in (0..1); hit, death, leap and potions don't count.</summary>
-        public float AttackWeight => body == ActionBody.Auto ? actionWeight : 0f;
+        public float AttackWeight => play != null ? play.AttackWeight : 0f;
 
-        void Awake() => combatant = combat.GetComponent<Combatant>();
+        /// <summary>Ground speed in m/s the run clip matches.</summary>
+        public float RunClipSpeed => runClipSpeed;
+
+        void Awake()
+        {
+            combatant = combat.GetComponent<Combatant>();
+            play = CreateActions(animator);
+        }
+
+        /// <summary>An action player with this one's clips and tuning for another model (other players).</summary>
+        public CharacterActions CreateActions(Animator target) => new CharacterActions(actions, new CharacterActions.Tuning
+        {
+            attackFill = attackFill,
+            minActionSpeed = minActionSpeed,
+            maxActionSpeed = maxActionSpeed,
+            crossFade = crossFade,
+            fadeOut = fadeOut,
+            runningSpeed = runningSpeed,
+            flinchOverAction = flinchOverAction,
+            comboResetIntervals = comboResetIntervals,
+        }, target);
 
         void OnEnable()
         {
@@ -104,103 +111,32 @@ namespace Wuxia.Player
         public void SetAnimator(Animator target)
         {
             animator = target;
-            current = null;
-            actionWeight = flinchWeight = 0f;
-            comboWeapon = null;
-            ApplyWeights();
+            if (play == null) play = CreateActions(target);
+            else play.SetAnimator(target);
         }
 
-        void OnBasicAttack()
-        {
-            var weapon = combat.Weapon.id;
-            var interval = combat.Stats.Attack.interval;
-            if (weapon != comboWeapon || Time.time >= comboResetAt) comboIndex = 0;
-            comboWeapon = weapon;
-            comboResetAt = Time.time + interval * comboResetIntervals;
+        void OnBasicAttack() => play.PlayBasic(combat.Weapon.id, combat.Stats.Attack.interval);
 
-            var action = actions.Find($"{weapon}_basic_{comboIndex}");
-            if (action == null && comboIndex > 0) action = actions.Find($"{weapon}_basic_{comboIndex = 0}");
-            comboIndex++;
-            Play(action, interval * attackFill);
-        }
-
-        void OnFormCast(FormData form)
-        {
-            var action = actions.Find(form.id);
-            if (action != null) Play(action, form.castTime);
-            else OnBasicAttack();
-        }
+        void OnFormCast(FormData form) => play.PlayForm(form.id, form.castTime, combat.Weapon.id, combat.Stats.Attack.interval);
 
         void OnDamaged(AttackResult result)
         {
-            if (!result.Hit || combat.IsDead) return;
-            var hit = actions.Find("hit");
-            if (hit == null || hit.resolved == null) return;
-            animator.Play(hit.state, FlinchLayer, 0f);
-            flinchLength = hit.resolved.length / Mathf.Max(0.01f, hit.speed);
-            flinchEnd = Time.time + flinchLength;
+            if (result.Hit && !combat.IsDead) play.Flinch();
         }
 
-        void OnDied(Combatant killer)
-        {
-            flinchEnd = 0f;
-            Play(actions.Find("death"), 0f);
-        }
+        void OnDied(Combatant killer) => play.Play("death");
 
-        void OnRevived() => Play(actions.Find("revive"), 0f);
+        void OnRevived() => play.Play("revive");
 
-        void OnPotionUsed() => Play(actions.Find("drink"), 0f);
+        void OnPotionUsed() => play.Play("drink");
 
         void OnLeapStarted(bool ledge)
         {
             // A dash is over in a blink; the sped-up run reads better than any clip.
-            if (ledge) Play(actions.Find("leap"), 0f);
+            if (ledge) play.Play("leap");
         }
 
-        void OnLeapLanded() => Play(actions.Find("leap_land"), 0f);
-
-        /// <summary>
-        /// Cross-fades both action layers into <paramref name="action"/>. With a duration, the action and
-        /// the states chained after it are sped up (or slowed) to fill it; otherwise each plays at its
-        /// own speed.
-        /// </summary>
-        void Play(PlayerActionSet.Action action, float duration)
-        {
-            if (action == null || animator == null) return;
-            var natural = ChainLength(action);
-            var multiplier = duration > 0f && natural > 0f
-                ? Mathf.Clamp(natural / duration, minActionSpeed, maxActionSpeed)
-                : 1f;
-            animator.SetFloat(ActionSpeedId, multiplier);
-            animator.CrossFadeInFixedTime(action.state, crossFade, FullLayer, 0f);
-            animator.CrossFadeInFixedTime(action.state, crossFade, UpperLayer, 0f);
-            current = action;
-            body = action.body;
-            actionEnd = IsHeld(action) ? float.PositiveInfinity : Time.time + natural / multiplier;
-        }
-
-        /// <summary>Seconds the action and everything chained after it take at their own speeds.</summary>
-        float ChainLength(PlayerActionSet.Action action)
-        {
-            var total = 0f;
-            for (var i = 0; action != null && i < 8; i++)
-            {
-                if (action.resolved != null) total += action.resolved.length / Mathf.Max(0.01f, action.speed);
-                if (action.hold) break;
-                action = actions.Find(action.next);
-            }
-            return total;
-        }
-
-        bool IsHeld(PlayerActionSet.Action action)
-        {
-            for (var i = 0; action != null && i < 8; i++)
-            {
-                if (action.hold) return true;
-                action = actions.Find(action.next);
-            }
-            return false;
-        }
+        void OnLeapLanded() => play.Play("leap_land");
 
         void Update()
         {
@@ -211,36 +147,11 @@ namespace Wuxia.Player
             lastPosition = transform.position;
             delta.y = 0f;
             // Clamp so a teleport (reviving at the Han) reads as running, not as a huge spike.
-            groundSpeed = Mathf.Min(delta.magnitude / dt, runClipSpeed * maxRunPlayback);
+            var groundSpeed = Mathf.Min(delta.magnitude / dt, runClipSpeed * maxRunPlayback);
 
             animator.SetFloat(SpeedId, groundSpeed, damping, dt);
             animator.SetFloat(RunPlaybackId, Mathf.Clamp(groundSpeed / runClipSpeed, 1f, maxRunPlayback));
-
-            var active = current != null && Time.time < actionEnd;
-            if (!active) current = null;
-            actionWeight = Mathf.MoveTowards(actionWeight, active ? 1f : 0f, dt / (active ? crossFade : fadeOut));
-            var running = groundSpeed > runningSpeed ? 1f : 0f;
-            upperBlend = Mathf.MoveTowards(upperBlend, running, dt / 0.15f);
-
-            // Rise fast, then fade out over the clip's second half.
-            var flinchTarget = 0f;
-            if (Time.time < flinchEnd)
-            {
-                var left = (flinchEnd - Time.time) / Mathf.Max(0.01f, flinchLength);
-                flinchTarget = Mathf.Clamp01(left * 2f) * (actionWeight > 0.5f ? flinchOverAction : 1f);
-            }
-            flinchWeight = Mathf.MoveTowards(flinchWeight, flinchTarget, dt / 0.06f);
-
-            ApplyWeights();
-        }
-
-        void ApplyWeights()
-        {
-            if (animator == null || animator.layerCount <= FlinchLayer) return;
-            var upper = body == ActionBody.Upper ? 1f : body == ActionBody.Full ? 0f : upperBlend;
-            animator.SetLayerWeight(FullLayer, actionWeight * (1f - upper));
-            animator.SetLayerWeight(UpperLayer, actionWeight * upper);
-            animator.SetLayerWeight(FlinchLayer, flinchWeight);
+            play.Update(groundSpeed, dt);
         }
     }
 }

@@ -4,7 +4,10 @@
 //
 //   node server/tests/bot.mjs --url http://127.0.0.1:7350 --seconds 90
 //   options: --url (default NAKAMA_URL or http://127.0.0.1:17350), --seconds 60, --zone oak_valley,
-//            --character zanas_chosen, --name "Bora Bot", --device wuxia-bot-1
+//            --character zanas_chosen, --name "Bora Bot", --device wuxia-bot-1,
+//            --cast swift_cut (a skill form to use on its target every --castEvery 6 s; spends the
+//            skill points its book needs first), --dashEvery 0 (seconds between ground dashes; 0 = never),
+//            --swap 1 (wield the other weapon first, e.g. the Kreshnik's bow)
 //
 // Node 22+, no dependencies.
 
@@ -18,6 +21,9 @@ const zone = args.zone || 'oak_valley';
 const characterId = args.character || 'zanas_chosen';
 const name = args.name || 'Bora Bot';
 const device = args.device || 'wuxia-bot-1';
+const castForm = args.cast || null;
+const castEvery = Number(args.castEvery || 6);
+const dashEvery = Number(args.dashEvery || 0);
 
 const token = await login(device);
 const list = await rpc(token, 'character_list');
@@ -34,6 +40,19 @@ for (let attempt = 0; ; attempt++) {
 }
 console.log(`${name} joined ${zone} channel ${join.channel} at ${BASE}; ${bot.players.size - 1} other player(s) here`);
 
+if (args.swap) bot.send(Op.Action, { a: 'swap' });
+if (castForm) {
+    const { readFileSync } = await import('node:fs');
+    const skills = JSON.parse(readFileSync(new URL('../../shared/gamedata/skills.json', import.meta.url), 'utf8'));
+    const book = skills.books.find((b) => b.forms.some((f) => f.id === castForm));
+    if (!book) throw new Error('no form ' + castForm);
+    const form = book.forms.find((f) => f.id === castForm);
+    const have = (bot.self.skills.books.find((b) => b.id === book.id) || { level: 0 }).level;
+    for (let level = have; level < form.unlockLevel; level++) bot.send(Op.Action, { a: 'levelBook', book: book.id });
+    console.log(`using ${castForm} (${book.id} to level ${Math.max(have, form.unlockLevel)})`);
+}
+let nextCast = Date.now() + 2000, nextDash = Date.now() + dashEvery * 1000;
+
 let target = null, leaderName = null;
 const seenEvents = new Set();
 const end = Date.now() + seconds * 1000;
@@ -42,7 +61,9 @@ while (Date.now() < end) {
     const me = bot.me();
     if (leader && me && !me.dead) {
         if (leaderName !== leader.name) { leaderName = leader.name; console.log('following ' + leader.name); }
-        me.y = leader.y; // walk at the leader's ground height
+        // Walk at the leader's ground height once close; far off (just revived at the Han) their
+        // height says nothing about ours, and the server corrects any step that's off.
+        if (Math.hypot(leader.x - me.x, leader.z - me.z) < 4) me.y = leader.y;
         const near = [...bot.monsters.values()]
             .filter((m) => m.state !== 'dead' && Math.hypot(m.x - leader.x, m.z - leader.z) < 6)
             .sort((a, b) => Math.hypot(a.x - leader.x, a.z - leader.z) - Math.hypot(b.x - leader.x, b.z - leader.z))[0];
@@ -53,9 +74,19 @@ while (Date.now() < end) {
                 console.log(`targeting ${near.monster} ${near.id} next to ${leader.name}`);
             }
             bot.stepToward(near.x + 1, near.z, 1.2);
+            if (castForm && Date.now() >= nextCast && Math.hypot(near.x - me.x, near.z - me.z) < 3) {
+                nextCast = Date.now() + castEvery * 1000;
+                bot.send(Op.Cast, { form: castForm, target: near.id });
+                console.log(`  cast ${castForm} at ${near.monster}`);
+            }
         } else {
             target = null;
             bot.stepToward(leader.x + 2, leader.z, 2);
+            if (dashEvery > 0 && Date.now() >= nextDash) {
+                nextDash = Date.now() + dashEvery * 1000;
+                bot.send(Op.Leap, { dir: [leader.x - me.x || 1, leader.z - me.z] });
+                console.log('  dash');
+            }
         }
     }
     for (const e of bot.events) {

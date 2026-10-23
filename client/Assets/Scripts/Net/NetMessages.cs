@@ -224,6 +224,13 @@ namespace Wuxia.Net
     {
         public string characterId;
         public string name;
+        public string weaponType;
+        public int gold;
+        public int kills;
+        /// <summary>Zone id of the last save ("" before the first join).</summary>
+        public string zone;
+        /// <summary>Held by a zone right now (or until its lock runs out).</summary>
+        public bool online;
     }
 
     [Serializable]

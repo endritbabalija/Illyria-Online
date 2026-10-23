@@ -2,13 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Wuxia.Data;
+using Wuxia.Net;
 using Wuxia.Player;
 
 namespace Wuxia.UI
 {
     /// <summary>
-    /// Learned skill books, their levels and forms, and spending skill points on them. Also holds a
-    /// test-only button to play the other character until character select exists (M4).
+    /// Learned skill books, their levels and forms, and spending skill points on them. Also holds the
+    /// character button: online it opens the character select, offline (a test helper) it plays the
+    /// other character with a fresh starter kit.
     /// </summary>
     public class SkillsPanel : MonoBehaviour
     {
@@ -22,6 +24,7 @@ namespace Wuxia.UI
         [SerializeField] Button switchCharacterButton;
 
         readonly List<SkillBookRow> rows = new List<SkillBookRow>();
+        Text switchLabel;
         int shownVersion = -1;
         string shownCharacter;
 
@@ -30,6 +33,7 @@ namespace Wuxia.UI
             rowTemplate.gameObject.SetActive(false);
             closeButton.onClick.AddListener(Close);
             switchCharacterButton.onClick.AddListener(SwitchCharacter);
+            switchLabel = switchCharacterButton.GetComponentInChildren<Text>();
         }
 
         public void Open()
@@ -49,6 +53,7 @@ namespace Wuxia.UI
         void Update()
         {
             var state = skills.State;
+            if (switchLabel != null) switchLabel.text = NetZone.Online ? "Change character" : "Play the other character";
             if (combat.Character.id != shownCharacter) Rebuild();
             if (state.Version == shownVersion) return;
             shownVersion = state.Version;
@@ -81,6 +86,12 @@ namespace Wuxia.UI
 
         void SwitchCharacter()
         {
+            if (NetZone.Online)
+            {
+                Close();
+                NetZone.Instance.OpenCharacterSelect();
+                return;
+            }
             var characters = GameData.Combat.characters;
             var index = System.Array.FindIndex(characters, c => c.id == combat.Character.id);
             combat.SetCharacter(characters[(index + 1) % characters.Length].id);

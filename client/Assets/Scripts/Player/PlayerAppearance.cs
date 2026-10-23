@@ -93,6 +93,86 @@ namespace Wuxia.Player
             }
         }
 
+        /// <summary>
+        /// Weapon models for another character model (other players): pivots on its hands with the same
+        /// local pose as ours, holding copies of our greybox weapons or the item models.
+        /// </summary>
+        public WeaponRig CreateWeaponRig(Animator model)
+        {
+            var hand = model.GetBoneTransform(HumanBodyBones.RightHand);
+            var leftHand = model.GetBoneTransform(HumanBodyBones.LeftHand);
+            if (hand == null) return null;
+            return new WeaponRig(this, Pivot(weaponPivot, hand), offHandPivot != null && leftHand != null ? Pivot(offHandPivot, leftHand) : null);
+        }
+
+        static Transform Pivot(Transform ours, Transform bone)
+        {
+            var pivot = new GameObject(ours.name).transform;
+            pivot.SetParent(bone, false);
+            pivot.SetLocalPositionAndRotation(ours.localPosition, ours.localRotation);
+            pivot.localScale = ours.localScale;
+            return pivot;
+        }
+
+        /// <summary>The weapon models another character model holds; <see cref="Show"/> picks the wielded one.</summary>
+        public class WeaponRig
+        {
+            readonly PlayerAppearance source;
+            readonly Transform pivot;
+            readonly Transform offHandPivot;
+            // One instance per item model key or greybox weapon type, made when first wielded.
+            readonly Dictionary<string, GameObject[]> instances = new Dictionary<string, GameObject[]>();
+            GameObject[] shown;
+
+            public WeaponRig(PlayerAppearance source, Transform pivot, Transform offHandPivot)
+            {
+                this.source = source;
+                this.pivot = pivot;
+                this.offHandPivot = offHandPivot;
+            }
+
+            /// <summary>Holds this weapon item: its own model if it has one, else the greybox model of its type.</summary>
+            public void Show(Data.ItemDef weapon)
+            {
+                var models = weapon != null ? Models(weapon) : null;
+                if (models == shown) return;
+                if (shown != null) foreach (var m in shown) if (m != null) m.SetActive(false);
+                shown = models;
+                if (shown != null) foreach (var m in shown) if (m != null) m.SetActive(true);
+            }
+
+            GameObject[] Models(Data.ItemDef weapon)
+            {
+                var prefab = source.itemModels != null ? source.itemModels.FindPrefab(weapon.modelKey) : null;
+                var key = prefab != null ? "item:" + weapon.modelKey : "type:" + weapon.weaponType;
+                if (instances.TryGetValue(key, out var made)) return made;
+                if (prefab != null) made = new[] { Copy(prefab, pivot) };
+                else
+                {
+                    var i = Array.FindIndex(source.weapons, w => w.weaponId == weapon.weaponType);
+                    if (i < 0) return null;
+                    var w = source.weapons[i];
+                    made = new[] { Copy(w.model, pivot), offHandPivot != null ? Copy(w.offHand, offHandPivot) : null };
+                }
+                instances[key] = made;
+                return made;
+            }
+
+            /// <summary>A copy under <paramref name="parent"/> with the original's local pose, no colliders, on the parent's layer.</summary>
+            static GameObject Copy(GameObject original, Transform parent)
+            {
+                if (original == null) return null;
+                var copy = Instantiate(original, parent, false);
+                copy.name = original.name;
+                copy.transform.SetLocalPositionAndRotation(original.transform.localPosition, original.transform.localRotation);
+                copy.transform.localScale = original.transform.localScale;
+                foreach (var c in copy.GetComponentsInChildren<Collider>(true)) Destroy(c);
+                foreach (var t in copy.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = parent.gameObject.layer;
+                copy.SetActive(false);
+                return copy;
+            }
+        }
+
         /// <summary>The wielded item's own model under the pivot, or null to use the greybox one.</summary>
         GameObject ItemModel()
         {
