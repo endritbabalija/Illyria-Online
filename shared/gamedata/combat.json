@@ -1,8 +1,9 @@
 {
-  "version": 1,
+  "version": 2,
   "player": {
-    "name": "Kreshnik",
     "maxHp": 220,
+    "maxSpirit": 100,
+    "spiritRegenPerSecond": 1.5,
     "defense": 2,
     "dodge": 0.05,
     "moveSpeed": 5.5,
@@ -12,16 +13,34 @@
     "regenDelay": 5,
     "regenPerSecond": 15,
     "respawnDelay": 5,
-    "attack": {
-      "minDamage": 14,
-      "maxDamage": 22,
-      "interval": 0.9,
-      "range": 2.2,
-      "accuracy": 0.92,
-      "critChance": 0.15,
-      "critMultiplier": 1.6
-    }
+    "resist": { "poison": 0, "paralysis": 0, "stun": 0 }
   },
+  "characters": [
+    { "id": "kreshnik", "name": "The Kreshnik", "weapons": ["sword", "bow"] },
+    { "id": "zanas_chosen", "name": "The Zana's Chosen", "weapons": ["sicas", "staff"] }
+  ],
+  "weapons": [
+    {
+      "id": "sword",
+      "name": "Sword",
+      "attack": { "minDamage": 14, "maxDamage": 22, "interval": 0.9, "range": 2.2, "reachHeight": 2, "accuracy": 0.92, "critChance": 0.15, "critMultiplier": 1.6 }
+    },
+    {
+      "id": "bow",
+      "name": "Bow",
+      "attack": { "minDamage": 11, "maxDamage": 17, "interval": 1.1, "range": 13, "reachHeight": 12, "accuracy": 0.9, "critChance": 0.15, "critMultiplier": 1.6 }
+    },
+    {
+      "id": "sicas",
+      "name": "Twin Sicas",
+      "attack": { "minDamage": 9, "maxDamage": 14, "interval": 0.6, "range": 2, "reachHeight": 2, "accuracy": 0.94, "critChance": 0.2, "critMultiplier": 1.6 }
+    },
+    {
+      "id": "staff",
+      "name": "Staff",
+      "attack": { "minDamage": 17, "maxDamage": 26, "interval": 1.2, "range": 2.8, "reachHeight": 2.5, "accuracy": 0.9, "critChance": 0.12, "critMultiplier": 1.7 }
+    }
+  ],
   "monsters": [
     {
       "id": "wolf",
@@ -36,15 +55,8 @@
       "leashRange": 20,
       "wanderRadius": 5,
       "respawnDelay": 10,
-      "attack": {
-        "minDamage": 5,
-        "maxDamage": 9,
-        "interval": 1.6,
-        "range": 1.9,
-        "accuracy": 0.85,
-        "critChance": 0.05,
-        "critMultiplier": 1.5
-      }
+      "resist": { "poison": 0, "paralysis": 0, "stun": 0 },
+      "attack": { "minDamage": 5, "maxDamage": 9, "interval": 1.6, "range": 1.9, "reachHeight": 1.5, "accuracy": 0.85, "critChance": 0.05, "critMultiplier": 1.5 }
     }
   ]
 }

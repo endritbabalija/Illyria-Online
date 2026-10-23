@@ -8,6 +8,7 @@ namespace Wuxia.Combat
         public bool Hit;
         public bool Crit;
         public int Damage;
+        public HitKind Kind;
 
         public static AttackResult Miss => new AttackResult();
     }

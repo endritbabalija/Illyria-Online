@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "skillPoints": {
+    "killsPerPoint": 5,
+    "bookLevelCosts": [1, 1, 1, 2, 3, 4, 6, 9, 14, 21, 31, 47],
+    "damagePerBookLevel": 0.08
+  },
+  "statuses": [
+    { "id": "poison", "name": "Poisoned", "disables": false, "tickInterval": 1, "resist": "poison" },
+    { "id": "paralysis", "name": "Paralysed", "disables": true, "tickInterval": 0, "resist": "paralysis" },
+    { "id": "stun", "name": "Stunned", "disables": true, "tickInterval": 0, "resist": "stun" },
+    { "id": "knockdown", "name": "Knocked down", "disables": true, "tickInterval": 0, "resist": "stun" }
+  ],
+  "books": [
+    {
+      "id": "sword_book",
+      "name": "Frontier Sword",
+      "weapon": "sword",
+      "requiredLevel": 10,
+      "forms": [
+        { "id": "eagle_strike", "name": "Eagle Strike", "unlockLevel": 1, "shape": "single", "range": 2.8, "radius": 0, "angle": 0, "spiritCost": 8, "cooldown": 4, "castTime": 0.45, "minDamage": 34, "maxDamage": 44, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "mountain_sweep", "name": "Mountain Sweep", "unlockLevel": 3, "shape": "cone", "range": 4.5, "radius": 0, "angle": 120, "spiritCost": 14, "cooldown": 7, "castTime": 0.55, "minDamage": 24, "maxDamage": 32, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "storm_of_blades", "name": "Storm of Blades", "unlockLevel": 6, "shape": "circle", "range": 0, "radius": 4.5, "angle": 0, "spiritCost": 22, "cooldown": 12, "castTime": 0.7, "minDamage": 26, "maxDamage": 36, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "bow_book",
+      "name": "Hawk Bow",
+      "weapon": "bow",
+      "requiredLevel": 10,
+      "forms": [
+        { "id": "hawk_shot", "name": "Hawk Shot", "unlockLevel": 1, "shape": "single", "range": 14, "radius": 0, "angle": 0, "spiritCost": 8, "cooldown": 4, "castTime": 0.45, "minDamage": 30, "maxDamage": 40, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "rain_of_arrows", "name": "Rain of Arrows", "unlockLevel": 3, "shape": "circleAtTarget", "range": 14, "radius": 4, "angle": 0, "spiritCost": 16, "cooldown": 9, "castTime": 0.6, "minDamage": 22, "maxDamage": 30, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "thunder_arrow", "name": "Thunder Arrow", "unlockLevel": 6, "shape": "single", "range": 14, "radius": 0, "angle": 0, "spiritCost": 18, "cooldown": 14, "castTime": 0.55, "minDamage": 28, "maxDamage": 36, "status": { "id": "stun", "chance": 1, "duration": 2.5, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "frontier_volley_book",
+      "name": "Frontier Volley",
+      "weapon": "bow",
+      "requiredLevel": 25,
+      "forms": [
+        { "id": "frontier_volley", "name": "Frontier Volley", "unlockLevel": 1, "shape": "cone", "range": 12, "radius": 0, "angle": 50, "spiritCost": 28, "cooldown": 16, "castTime": 0.7, "minDamage": 36, "maxDamage": 48, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "sicas_book",
+      "name": "Zana Sicas",
+      "weapon": "sicas",
+      "requiredLevel": 10,
+      "forms": [
+        { "id": "swift_cut", "name": "Swift Cut", "unlockLevel": 1, "shape": "single", "range": 2.6, "radius": 0, "angle": 0, "spiritCost": 6, "cooldown": 3, "castTime": 0.35, "minDamage": 28, "maxDamage": 38, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "crescent_fan", "name": "Crescent Fan", "unlockLevel": 3, "shape": "cone", "range": 4, "radius": 0, "angle": 140, "spiritCost": 14, "cooldown": 7, "castTime": 0.5, "minDamage": 18, "maxDamage": 26, "status": { "id": "poison", "chance": 0.6, "duration": 6, "tickDamage": 5 } },
+        { "id": "whirlwind", "name": "Whirlwind", "unlockLevel": 6, "shape": "circle", "range": 0, "radius": 4, "angle": 0, "spiritCost": 20, "cooldown": 11, "castTime": 0.65, "minDamage": 24, "maxDamage": 34, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "staff_book",
+      "name": "Spring Staff",
+      "weapon": "staff",
+      "requiredLevel": 10,
+      "forms": [
+        { "id": "mountain_strike", "name": "Mountain Strike", "unlockLevel": 1, "shape": "single", "range": 3.2, "radius": 0, "angle": 0, "spiritCost": 10, "cooldown": 5, "castTime": 0.7, "minDamage": 44, "maxDamage": 56, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } },
+        { "id": "spring_wave", "name": "Spring Wave", "unlockLevel": 3, "shape": "cone", "range": 7, "radius": 0, "angle": 70, "spiritCost": 16, "cooldown": 8, "castTime": 0.55, "minDamage": 20, "maxDamage": 28, "status": { "id": "paralysis", "chance": 0.5, "duration": 2, "tickDamage": 0 } },
+        { "id": "zanas_ring", "name": "Zana's Ring", "unlockLevel": 6, "shape": "circle", "range": 0, "radius": 5, "angle": 0, "spiritCost": 22, "cooldown": 12, "castTime": 0.7, "minDamage": 24, "maxDamage": 34, "status": { "id": "", "chance": 0, "duration": 0, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "wrath_of_the_zanas_book",
+      "name": "Wrath of the Zanas",
+      "weapon": "staff",
+      "requiredLevel": 25,
+      "forms": [
+        { "id": "wrath_of_the_zanas", "name": "Wrath of the Zanas", "unlockLevel": 1, "shape": "circle", "range": 0, "radius": 6, "angle": 0, "spiritCost": 30, "cooldown": 18, "castTime": 0.8, "minDamage": 32, "maxDamage": 44, "status": { "id": "knockdown", "chance": 0.8, "duration": 1.5, "tickDamage": 0 } }
+      ]
+    },
+    {
+      "id": "drangue_leap",
+      "name": "Drangue Leap",
+      "weapon": "",
+      "requiredLevel": 20,
+      "forms": []
+    }
+  ],
+  "drangueLeap": {
+    "bookId": "drangue_leap",
+    "spiritCost": 12,
+    "cooldown": 3,
+    "maxDistance": 12,
+    "maxRise": 10,
+    "maxDrop": 12,
+    "aimAngle": 100,
+    "landingInset": 0.8,
+    "leapDuration": 0.7,
+    "arcHeight": 3,
+    "dashDistance": 6,
+    "dashDuration": 0.25
+  },
+  "dev": {
+    "learnAllBooks": true,
+    "startingSkillPoints": 40
+  }
+}
