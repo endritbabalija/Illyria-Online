@@ -1,0 +1,13 @@
+-------------------------------------------------------
+Bandit.glb — "Hooded Adventurer" by Quaternius
+(animated: Idle_Sword, Walk, Run, Sword_Slash, Death, HitRecieve, ...)
+Source: https://poly.pizza/m/y9KWOVG21R
+
+Recoloured (maroon hood, dark leather, black hair) and made matte with a JSON-only edit:
+art-source/make_bandit.py on art-source/HoodedAdventurer.glb. Mesh, rig and animations unchanged.
+
+License:
+CC0 1.0 Universal (CC0 1.0)
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+-------------------------------------------------------

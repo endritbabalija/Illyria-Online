@@ -1,0 +1,13 @@
+-------------------------------------------------------
+Boar.glb — made from "Pig" in the Farm Animals Pack by Quaternius
+(animated: Idle, Walk, Run, Death; Attack added in Blender)
+Source: https://opengameart.org/content/lowpoly-animated-farm-animal-pack
+
+Recoloured, reshaped (shoulders, ears), bristle mane and tusks added, headbutt
+Attack action authored: art-source/make_boar.py on Pig.blend -> art-source/Boar.blend.
+
+License:
+CC0 1.0 Universal (CC0 1.0)
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+-------------------------------------------------------

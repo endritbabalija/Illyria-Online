@@ -206,7 +206,7 @@ namespace Wuxia.Tests
                     Assert.That(d.max, Is.GreaterThanOrEqualTo(d.min), $"{t.id}/{d.item}");
                 }
             }
-            Assert.That(data.FindLootTable("wolf"), Is.Not.Null, "wolves drop loot");
+            foreach (var m in combat.monsters) Assert.That(data.FindLootTable(m.id), Is.Not.Null, $"{m.id} drops loot");
         }
     }
 }

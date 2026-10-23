@@ -63,15 +63,20 @@ namespace Wuxia.Tests
         }
 
         [Test]
-        public void Wolf_IsValid_AndPlayerCanOutrunIt()
+        public void Monsters_AreValid_AndPlayerCanOutrunThem()
         {
             var data = Load();
-            var wolf = data.GetMonster("wolf");
-            Assert.That(wolf.maxHp, Is.GreaterThan(0));
-            Assert.That(wolf.leashRange, Is.GreaterThan(wolf.aggroRange));
-            Assert.That(wolf.chaseSpeed, Is.LessThan(data.player.moveSpeed), "the player must be able to escape a chase");
-            AssertValid(wolf.attack, "wolf");
-            AssertValid(wolf.resist, "wolf");
+            foreach (var id in new[] { "wolf", "boar", "bandit", "den_wolf" }) Assert.DoesNotThrow(() => data.GetMonster(id), $"Oak Valley needs '{id}'");
+            foreach (var m in data.monsters)
+            {
+                Assert.That(m.level, Is.GreaterThan(0), m.id);
+                Assert.That(m.maxHp, Is.GreaterThan(0), m.id);
+                Assert.That(m.leashRange, Is.GreaterThan(m.aggroRange), m.id);
+                Assert.That(m.wanderSpeed, Is.LessThan(m.chaseSpeed), m.id);
+                Assert.That(m.chaseSpeed, Is.LessThan(data.player.moveSpeed), $"{m.id}: the player must be able to escape a chase");
+                AssertValid(m.attack, m.id);
+                AssertValid(m.resist, m.id);
+            }
         }
 
         [Test]

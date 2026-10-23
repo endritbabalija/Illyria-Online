@@ -227,7 +227,7 @@ namespace Wuxia.UI
             if (kills != shownKills)
             {
                 shownKills = kills;
-                killsText.text = $"Wolves slain: {kills}";
+                killsText.text = $"Slain: {kills}";
             }
 
             if (noticeText.text.Length > 0 && Time.time >= noticeUntil) noticeText.text = "";

@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Wuxia.Monsters;
 using Wuxia.World;
 using Object = UnityEngine.Object;
 using Random = System.Random;
@@ -19,7 +20,7 @@ namespace Wuxia.EditorTools
     /// <see cref="Paint"/>), procedural ground textures, placeholder trees, rocks and props, invisible
     /// bounds, leap ledges and <see cref="ZoneArea"/>s. Re-running replaces <c>Environment/Generated</c>
     /// and <c>Gameplay/Areas</c> and moves the gameplay anchors (Han, respawn point, Han Keeper,
-    /// shepherd, wolf packs, signs) to their spots. Rebake the NavMesh afterwards.
+    /// shepherd, monster spawners, signs) to their spots; missing spawners are created. Rebake the NavMesh afterwards.
     /// Menu: Wuxia → World → Build Oak Valley; MCP: <c>return Wuxia.EditorTools.OakValleyBuilder.Build();</c>
     /// </summary>
     public static class OakValleyBuilder
@@ -66,6 +67,10 @@ namespace Wuxia.EditorTools
         static readonly Vector2 MeadowWestPack = new Vector2(-42f, -136f);
         static readonly Vector2 MeadowEastPack = new Vector2(44f, -88f);
         static readonly Vector2 DenPack = new Vector2(80f, 166f);
+        static readonly Vector2 BoarSpringHerd = new Vector2(-51f, -9f);
+        static readonly Vector2 BoarEastHerd = new Vector2(42f, 20f);
+        static readonly Vector2 BanditCampGang = new Vector2(-77f, 108f);
+        static readonly Vector2 BanditLookouts = new Vector2(-62f, 107f);
 
         /// <summary>Valley floor height: level at the Han, rising gently towards the north pass.</summary>
         static float FloorY(float z) => 4.5f * Smooth(-175f, 200f, z);
@@ -178,7 +183,7 @@ namespace Wuxia.EditorTools
         static (Vector2 c, float r)[] Keepouts => keepouts ??= new[]
         {
             (HanPad, 24f), (Gate, 15f), (Hut, 15f), (new Vector2(46f, -134f), 12f), (Spring, 11f), (Camp, 22f), (Den, 17f), (Cave, 10f),
-            (NorthExit, 14f), (Flat(BridgeCentre), 17f), (MeadowWestPack, 11f), (MeadowEastPack, 11f), (Flat(HanRoot) + new Vector2(0f, 14f), 10f),
+            (NorthExit, 14f), (Flat(BridgeCentre), 17f), (MeadowWestPack, 11f), (MeadowEastPack, 11f), (BoarEastHerd, 12f), (Flat(HanRoot) + new Vector2(0f, 14f), 10f),
         };
 
         static float Height(float x, float z)
@@ -1713,9 +1718,15 @@ namespace Wuxia.EditorTools
             var camera = GameObject.Find("Main Camera").transform;
             camera.SetPositionAndRotation(respawn.position + new Vector3(0f, 5.4f, -7f), Quaternion.Euler(28f, 0f, 0f));
 
-            Pack(ctx, gameplay, new[] { "MeadowWestPack", "WestDen" }, "MeadowWestPack", MeadowWestPack);
-            Pack(ctx, gameplay, new[] { "MeadowEastPack", "EastDen" }, "MeadowEastPack", MeadowEastPack);
-            Pack(ctx, gameplay, new[] { "WolfDenPack", "NorthDen" }, "WolfDenPack", DenPack);
+            // Monsters by area: wolves in the meadow (lv 1–4), boars in the oak forest (5–8), bandits at
+            // the camp (8–11), den wolves at the den (11–12).
+            Pack(ctx, gameplay, new[] { "MeadowWestPack", "WestDen" }, "MeadowWestPack", MeadowWestPack, "Wolf", 5, 6f);
+            Pack(ctx, gameplay, new[] { "MeadowEastPack", "EastDen" }, "MeadowEastPack", MeadowEastPack, "Wolf", 5, 6f);
+            Pack(ctx, gameplay, new[] { "BoarSpringHerd" }, "BoarSpringHerd", BoarSpringHerd, "Boar", 4, 6f);
+            Pack(ctx, gameplay, new[] { "BoarEastHerd" }, "BoarEastHerd", BoarEastHerd, "Boar", 4, 7f);
+            Pack(ctx, gameplay, new[] { "BanditCampGang" }, "BanditCampGang", BanditCampGang, "Bandit", 5, 7f);
+            Pack(ctx, gameplay, new[] { "BanditLookouts" }, "BanditLookouts", BanditLookouts, "Bandit", 3, 3.5f);
+            Pack(ctx, gameplay, new[] { "WolfDenPack", "NorthDen" }, "WolfDenPack", DenPack, "DenWolf", 4, 7f);
 
             var shepherd = gameplay.Find("Shepherd");
             if (shepherd == null) shepherd = CreateShepherd(ctx, gameplay);
@@ -1731,17 +1742,31 @@ namespace Wuxia.EditorTools
             Anchor(signs, "ToSerpentMarsh", ctx.OnGround(SignpostSpot, 1.2f));
         }
 
-        static void Pack(Context ctx, Transform gameplay, string[] names, string name, Vector2 at)
+        /// <summary>
+        /// Moves the spawner (found under any of <paramref name="names"/>, created if none) to its spot
+        /// and sets which monster prefab it keeps alive, how many and how far they spread.
+        /// </summary>
+        static void Pack(Context ctx, Transform gameplay, string[] names, string name, Vector2 at, string prefab, int count, float radius)
         {
+            Transform t = null;
             foreach (var n in names)
+                if ((t = gameplay.Find(n)) != null) break;
+            if (t == null)
             {
-                var t = gameplay.Find(n);
-                if (t == null) continue;
-                t.name = name;
-                t.position = ctx.OnGround(at);
-                return;
+                t = new GameObject(name, typeof(MonsterSpawner)).transform;
+                t.SetParent(gameplay, false);
             }
-            Debug.LogWarning($"[OakValley] No spawner named {string.Join(" or ", names)} to move");
+            t.name = name;
+            t.position = ctx.OnGround(at);
+
+            var path = $"Assets/Prefabs/{prefab}.prefab";
+            var monster = AssetDatabase.LoadAssetAtPath<MonsterAI>(path);
+            if (monster == null) Debug.LogWarning($"[OakValley] No monster prefab at {path} for {name}");
+            var spawner = new SerializedObject(t.GetComponent<MonsterSpawner>());
+            spawner.FindProperty("prefab").objectReferenceValue = monster;
+            spawner.FindProperty("count").intValue = count;
+            spawner.FindProperty("radius").floatValue = radius;
+            spawner.ApplyModifiedProperties();
         }
 
         static void Anchor(Transform parent, string name, Vector3 position)

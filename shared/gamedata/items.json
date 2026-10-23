@@ -148,6 +148,54 @@
         { "item": "shepherds_amulet", "chance": 0.03, "min": 1, "max": 1 },
         { "item": "wolf_fang_amulet", "chance": 0.02, "min": 1, "max": 1 }
       ]
+    },
+    {
+      "id": "boar",
+      "monster": "boar",
+      "goldChance": 0.9,
+      "goldMin": 6,
+      "goldMax": 15,
+      "drops": [
+        { "item": "iron_sword", "chance": 0.025, "min": 1, "max": 1 },
+        { "item": "hp_potion", "chance": 0.3, "min": 1, "max": 2 },
+        { "item": "spirit_potion", "chance": 0.12, "min": 1, "max": 1 },
+        { "item": "cloth_hood", "chance": 0.04, "min": 1, "max": 1 },
+        { "item": "padded_vest", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "leather_boots", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "copper_ring", "chance": 0.03, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "bandit",
+      "monster": "bandit",
+      "goldChance": 1,
+      "goldMin": 14,
+      "goldMax": 30,
+      "drops": [
+        { "item": "iron_sword", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "hp_potion", "chance": 0.3, "min": 1, "max": 2 },
+        { "item": "spirit_potion", "chance": 0.18, "min": 1, "max": 1 },
+        { "item": "cloth_hood", "chance": 0.06, "min": 1, "max": 1 },
+        { "item": "padded_vest", "chance": 0.06, "min": 1, "max": 1 },
+        { "item": "leather_boots", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "copper_ring", "chance": 0.06, "min": 1, "max": 1 },
+        { "item": "shepherds_amulet", "chance": 0.03, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "den_wolf",
+      "monster": "den_wolf",
+      "goldChance": 0.95,
+      "goldMin": 12,
+      "goldMax": 26,
+      "drops": [
+        { "item": "iron_sword", "chance": 0.03, "min": 1, "max": 1 },
+        { "item": "hp_potion", "chance": 0.3, "min": 1, "max": 2 },
+        { "item": "spirit_potion", "chance": 0.15, "min": 1, "max": 1 },
+        { "item": "leather_boots", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "copper_ring", "chance": 0.04, "min": 1, "max": 1 },
+        { "item": "wolf_fang_amulet", "chance": 0.06, "min": 1, "max": 1 }
+      ]
     }
   ]
 }

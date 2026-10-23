@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "player": {
     "maxHp": 220,
     "maxSpirit": 100,
@@ -57,6 +57,54 @@
       "respawnDelay": 10,
       "resist": { "poison": 0, "paralysis": 0, "stun": 0 },
       "attack": { "minDamage": 5, "maxDamage": 9, "interval": 1.6, "range": 1.9, "reachHeight": 1.5, "accuracy": 0.85, "critChance": 0.05, "critMultiplier": 1.5 }
+    },
+    {
+      "id": "boar",
+      "name": "Wild Boar",
+      "level": 6,
+      "maxHp": 150,
+      "defense": 3,
+      "dodge": 0.04,
+      "wanderSpeed": 1.2,
+      "chaseSpeed": 5.2,
+      "aggroRange": 5,
+      "leashRange": 18,
+      "wanderRadius": 6,
+      "respawnDelay": 14,
+      "resist": { "poison": 0.1, "paralysis": 0, "stun": 0 },
+      "attack": { "minDamage": 10, "maxDamage": 16, "interval": 2.0, "range": 2.1, "reachHeight": 1.2, "accuracy": 0.85, "critChance": 0.08, "critMultiplier": 1.6 }
+    },
+    {
+      "id": "bandit",
+      "name": "Bandit",
+      "level": 9,
+      "maxHp": 190,
+      "defense": 5,
+      "dodge": 0.1,
+      "wanderSpeed": 1.6,
+      "chaseSpeed": 5.0,
+      "aggroRange": 8,
+      "leashRange": 22,
+      "wanderRadius": 4,
+      "respawnDelay": 18,
+      "resist": { "poison": 0, "paralysis": 0.05, "stun": 0.05 },
+      "attack": { "minDamage": 12, "maxDamage": 19, "interval": 1.5, "range": 2.3, "reachHeight": 2, "accuracy": 0.88, "critChance": 0.1, "critMultiplier": 1.6 }
+    },
+    {
+      "id": "den_wolf",
+      "name": "Den Wolf",
+      "level": 11,
+      "maxHp": 230,
+      "defense": 6,
+      "dodge": 0.1,
+      "wanderSpeed": 2.2,
+      "chaseSpeed": 5.4,
+      "aggroRange": 8,
+      "leashRange": 24,
+      "wanderRadius": 5,
+      "respawnDelay": 15,
+      "resist": { "poison": 0.1, "paralysis": 0.1, "stun": 0 },
+      "attack": { "minDamage": 12, "maxDamage": 18, "interval": 1.4, "range": 2.0, "reachHeight": 1.6, "accuracy": 0.88, "critChance": 0.08, "critMultiplier": 1.5 }
     }
   ]
 }
