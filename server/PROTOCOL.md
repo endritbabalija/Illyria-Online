@@ -51,7 +51,7 @@ Every payload is UTF-8 JSON (`socket.SendMatchStateAsync(matchId, opCode, json)`
 
 | Op | Name | Payload | Notes |
 | --- | --- | --- | --- |
-| 1 | Move | `{x, y, z, yaw}` | Send ~10×/s while moving. Checked against run speed (`combat.json` `player.moveSpeed` × `movement.speedTolerance`), slope, and ledges (ledge tops are reached by Leap only). A refused move gets a **Correction**. Ignored while dead or mid-leap. |
+| 1 | Move | `{x, y, z, yaw}` | Send ~10×/s while moving. Checked against a movement budget (earned at `combat.json` `player.moveSpeed` × `movement.speedTolerance` per second of server time, banked up to `movement.maxGapSeconds` of it, spent by each move's length; `distanceSlack` may be borrowed), so moves may arrive in uneven bursts but can't outrun run speed on average; also slope, ledges (ledge tops are reached by Leap only) and the walkable grid. A refused move gets a **Correction**. Ignored while dead or mid-leap. |
 | 2 | Target | `{id}` · `{id: null}` · `{nearest: true}` | Lock a monster (auto-attack starts whenever it's in weapon range), clear, or the Attack button (keep the current target or lock the nearest within `lockRange`). Answer: **Result** `{a: "target", id}`. |
 | 3 | Cast | `{form, target?, dir?: [x, z], rid?}` | A skill form. Single and circle-at-target forms need a target in range (run in first). Pressed while a form plays, it's queued (`{queued: true}`) and fires when that one ends, if still possible within `playerRules.castQueueTimeout`. Cones face the target, else `dir`, else the player's yaw. |
 | 4 | Leap | `{ledge?, dir?: [x, z], rid?}` | Drangue Leap onto the named ledge (`zones.json` ledge `name`), checked like `LeapRules` (distance, rise, drop) plus the aim wedge; or, without `ledge`, a ground dash of `dashDistance`. Answer: **Result** `{to: [x, y, z], ledge}`. |
@@ -88,7 +88,7 @@ Actions (`a`):
 - `player` = `{id (user id), name, character, weapon (item def), x, y, z, yaw, hp, maxHp, sp, maxSp, dead, st: [{id, left}]}`
 - `monster` = `{id, monster (combat.json id), pack, x, y, z, yaw, hp, maxHp, state (idle/chase/return/dead), target, st}`. Monsters walk on the zone's walkable grid (straight where they can, round obstacles where they can't) and `y` is the grid's ground height, so they line up with the NavMesh to within a few centimetres; snap them onto it locally if needed.
 - `drop` = `{id, x, y, z, gold, item: {id, def, rarity, count, lines} | null, left}`. Loot belongs to the player credited with the kill (most damage dealt; the killing blow breaks ties) and only they see it; it's picked up automatically within `loot.autoLootRadius` after `loot.pickupDelay`.
-- `self` = `{characterId, name, gold, bag, equipment, quickSlots, stats, skills: {books, points, meterKills}, kills, cooldowns, potionCooldowns}`
+- `self` = `{characterId, name, gold, bag (array; empty slots are null), equipment: {weapon, helm, armor, boots, ring, amulet} (item or null), quickSlots, stats, skills: {books: [{id, level}], points, meterKills}, kills, cooldowns: [{id, left}] (form ids and `drangue_leap`), potionCooldowns: [{id, left}] (cooldown groups)}`. Lists rather than maps, so Unity's JsonUtility reads it.
 
 Events (`k`):
 

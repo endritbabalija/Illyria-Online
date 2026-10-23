@@ -69,6 +69,14 @@ namespace Wuxia.World
             AreaChanged?.Invoke(area);
         }
 
+        /// <summary>Online: the server's kill count for our character.</summary>
+        public void SetKills(int kills)
+        {
+            if (kills == Kills) return;
+            Kills = kills;
+            KillsChanged?.Invoke(Kills);
+        }
+
         public void RegisterKill(Combatant monster)
         {
             Kills++;

@@ -34,7 +34,14 @@ namespace Wuxia.Monsters
         public Combatant Combatant { get; private set; }
         public float PersonalSpace => personalSpace;
         public MonsterData Data => data;
+        public string MonsterId => monsterId;
         public float RespawnDelay => data.respawnDelay;
+        /// <summary>Online: the server runs this monster; it only follows what the server says.</summary>
+        public bool Remote { get; private set; }
+        /// <summary>Online: the server's id for this monster ("m12").</summary>
+        public string NetId { get; private set; }
+        /// <summary>Ground velocity, measured (the agent's when local, from the server's moves when remote).</summary>
+        public Vector3 Velocity => Remote ? remoteVelocity : agent.enabled ? agent.velocity : Vector3.zero;
 
         /// <summary>Fires after every (re)spawn, once the monster is back at full HP and idle.</summary>
         public event Action Spawned;
@@ -95,6 +102,11 @@ namespace Wuxia.Monsters
 
         void Update()
         {
+            if (Remote)
+            {
+                UpdateRemote();
+                return;
+            }
             var disabled = state != State.Dead && Combatant.IsDisabled;
             if (agent.isOnNavMesh && agent.isStopped != disabled) agent.isStopped = disabled;
             if (disabled) return;
@@ -231,6 +243,7 @@ namespace Wuxia.Monsters
 
         void OnDamaged(AttackResult result)
         {
+            if (Remote) return; // the server decides who it chases
             var attacker = Combatant.LastAttacker;
             if (Combatant.IsDead || state != State.Idle || attacker == null) return;
             StartChase(attacker);
@@ -239,6 +252,17 @@ namespace Wuxia.Monsters
 
         void OnDied(Combatant killer)
         {
+            if (Remote)
+            {
+                // The server counts the kill and says when the corpse goes (DespawnRemote).
+                state = State.Dead;
+                alive.Remove(this);
+                target = null;
+                body.enabled = false;
+                visuals.SetDowned();
+                remoteVelocity = Vector3.zero;
+                return;
+            }
             state = State.Dead;
             alive.Remove(this);
             target = null;
@@ -248,6 +272,78 @@ namespace Wuxia.Monsters
             visuals.SetDowned();
             despawnAt = Time.time + corpseTime;
             if (killer != null && killer.Team == Team.Player) ZoneSession.Instance.RegisterKill(Combatant);
+        }
+
+        // ---- Online: driven by the server -------------------------------------------------------
+
+        Vector3 remoteTarget;
+        Quaternion remoteRotation;
+        Vector3 remoteVelocity;
+        [Tooltip("Online: how quickly a remote monster closes on the position the server last sent (per second).")]
+        [SerializeField] float remoteSmoothing = 12f;
+        [Tooltip("Online: beyond this distance from the server's position, snap instead of sliding.")]
+        [SerializeField] float remoteSnapDistance = 6f;
+
+        /// <summary>Online: (re)appears where the server put it, at the server's HP, idle.</summary>
+        public void SpawnRemote(string netId, Vector3 position, float yaw, int hp, int maxHp)
+        {
+            Remote = true;
+            NetId = netId;
+            home = position;
+            gameObject.SetActive(true);
+            agent.enabled = false;
+            transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+            remoteTarget = position;
+            remoteRotation = transform.rotation;
+            remoteVelocity = Vector3.zero;
+            body.enabled = true;
+            Combatant.RestoreFull();
+            Combatant.SetHp(hp, maxHp);
+            visuals.ResetPose();
+            target = null;
+            state = State.Idle;
+            if (!alive.Contains(this)) alive.Add(this);
+            Spawned?.Invoke();
+        }
+
+        /// <summary>Online: the server's latest position and facing for this monster.</summary>
+        public void SetRemoteState(Vector3 position, float yaw)
+        {
+            remoteTarget = position;
+            remoteRotation = Quaternion.Euler(0f, yaw, 0f);
+        }
+
+        /// <summary>Online: it bit someone (the hit itself arrives as an event).</summary>
+        public void PlayRemoteAttack(Vector3 victim)
+        {
+            if (state == State.Dead) return;
+            var d = victim - transform.position;
+            d.y = 0f;
+            if (d.sqrMagnitude > 0.0001f) remoteRotation = transform.rotation = Quaternion.LookRotation(d);
+            visuals.PlayAttack();
+            Attacked?.Invoke();
+        }
+
+        /// <summary>Online: the corpse is gone.</summary>
+        public void DespawnRemote()
+        {
+            alive.Remove(this);
+            gameObject.SetActive(false);
+        }
+
+        void UpdateRemote()
+        {
+            var dt = Time.deltaTime;
+            if (state == State.Dead || dt <= 0f) return;
+            var before = transform.position;
+            var to = remoteTarget;
+            transform.position = (to - before).sqrMagnitude > remoteSnapDistance * remoteSnapDistance
+                ? to
+                : Vector3.Lerp(before, to, 1f - Mathf.Exp(-remoteSmoothing * dt));
+            transform.rotation = Quaternion.Slerp(transform.rotation, remoteRotation, 1f - Mathf.Exp(-remoteSmoothing * dt));
+            var v = (transform.position - before) / dt;
+            v.y = 0f;
+            remoteVelocity = v;
         }
 
         void FaceTowards(Vector3 point)

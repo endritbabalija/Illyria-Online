@@ -19,10 +19,24 @@ namespace Wuxia.UI
         RectTransform layer;
         bool shown = true;
 
-        void Awake() => layer = (RectTransform)label.parent;
+        void Awake()
+        {
+            if (label != null) layer = (RectTransform)label.parent;
+        }
+
+        /// <summary>Sets up a label added from code (a remote player's name).</summary>
+        public void Configure(Transform anchorTransform, Camera cam, RectTransform labelRect, Vector3 labelOffset)
+        {
+            anchor = anchorTransform;
+            viewCamera = cam;
+            label = labelRect;
+            offset = labelOffset;
+            layer = (RectTransform)label.parent;
+        }
 
         void LateUpdate()
         {
+            if (label == null || anchor == null || viewCamera == null) return;
             var world = anchor.position + offset;
             var screen = viewCamera.WorldToScreenPoint(world);
             var visible = screen.z > 0f && screen.z < maxDistance;

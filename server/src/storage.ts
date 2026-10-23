@@ -20,6 +20,19 @@ function loadGameData(nk: nkruntime.Nakama): GameData {
 
 interface StoredCharacter { save: CharacterSave; version: string; }
 
+/**
+ * Is the character live in another match? A lock whose match no longer exists (the server
+ * restarted, or the match stopped without saving) holds nothing, even before it runs out.
+ */
+function isHeldElsewhere(nk: nkruntime.Nakama, save: CharacterSave, matchId: string | null, nowMs: number): boolean {
+    if (!isSessionLocked(save, matchId, nowMs)) return false;
+    try {
+        return nk.matchGet((save.session as { matchId: string }).matchId) !== null;
+    } catch (e) {
+        return false;
+    }
+}
+
 function readCharacter(nk: nkruntime.Nakama, data: GameData, userId: string, characterId: string): StoredCharacter | null {
     var objects = nk.storageRead([{ collection: CHARACTERS, key: characterId, userId: userId }]);
     if (!objects || objects.length === 0) return null;

@@ -127,12 +127,15 @@ namespace Wuxia.Player
         /// <summary>Called by the leap when it lands, so gravity starts fresh.</summary>
         public void ResetFall() => verticalSpeed = 0f;
 
-        public void Teleport(Transform point)
+        public void Teleport(Transform point) => Teleport(point.position, point.rotation);
+
+        public void Teleport(Vector3 position, Quaternion rotation)
         {
             body.enabled = false;
-            transform.SetPositionAndRotation(point.position, point.rotation);
+            transform.SetPositionAndRotation(position, rotation);
             body.enabled = true;
             verticalSpeed = 0f;
+            CancelRunTo();
         }
 
         /// <summary>Unit direction on the ground plane.</summary>

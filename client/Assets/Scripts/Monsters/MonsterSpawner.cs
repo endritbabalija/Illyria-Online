@@ -15,8 +15,19 @@ namespace Wuxia.Monsters
 
         readonly List<MonsterAI> pack = new List<MonsterAI>();
 
+        /// <summary>The monster this spawner keeps alive (online, the server's monsters of this pack use it too).</summary>
+        public MonsterAI Prefab => prefab;
+
         void Start()
         {
+            // Online the server runs the monsters; if connecting fails, Net.NetZone calls SpawnLocal.
+            if (Net.NetZone.WillConnect) return;
+            SpawnLocal();
+        }
+
+        public void SpawnLocal()
+        {
+            if (pack.Count > 0) return;
             for (var i = 0; i < count; i++)
             {
                 var position = RandomPoint();

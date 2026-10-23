@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.AI;
 using Wuxia.Combat;
 
 namespace Wuxia.Monsters
@@ -31,13 +30,11 @@ namespace Wuxia.Monsters
 
         MonsterAI ai;
         Combatant combatant;
-        NavMeshAgent agent;
 
         void Awake()
         {
             ai = GetComponent<MonsterAI>();
             combatant = GetComponent<Combatant>();
-            agent = GetComponent<NavMeshAgent>();
         }
 
         void OnEnable()
@@ -78,9 +75,9 @@ namespace Wuxia.Monsters
             if (dt <= 0f || combatant.IsDead || ai.Data == null) return;
 
             var speed = 0f;
-            if (agent.enabled && !combatant.IsDisabled)
+            if (!combatant.IsDisabled)
             {
-                var v = agent.velocity;
+                var v = ai.Velocity;
                 v.y = 0f;
                 speed = v.magnitude;
             }

@@ -4,6 +4,7 @@ using Wuxia.Combat;
 using Wuxia.Data;
 using Wuxia.Items;
 using Wuxia.Monsters;
+using Wuxia.Net;
 using Wuxia.Player;
 using Wuxia.UI;
 
@@ -37,6 +38,8 @@ namespace Wuxia.World
             public float ExpireAt;
             /// <summary>Items.Version when pickup last failed (bag full); retried only after the bag changes.</summary>
             public int BlockedVersion = -1;
+            /// <summary>Online: the server's id for this drop (null offline).</summary>
+            public string NetId;
         }
 
         [SerializeField] PlayerCombat player;
@@ -65,6 +68,7 @@ namespace Wuxia.World
         readonly Stack<GroundDropView> freeViews = new Stack<GroundDropView>();
         readonly Dictionary<GameObject, Stack<GameObject>> freeModels = new Dictionary<GameObject, Stack<GameObject>>();
         readonly Dictionary<string, Material> glowByRarity = new Dictionary<string, Material>();
+        readonly Dictionary<string, Drop> netDrops = new Dictionary<string, Drop>();
         readonly System.Random rng = new System.Random();
         LootRules rules;
         Material goldGlow;
@@ -122,7 +126,33 @@ namespace Wuxia.World
             return spot;
         }
 
-        void SpawnOne(LootDrop loot, Vector3 from, Vector3 rest, string source)
+        /// <summary>
+        /// Online: a drop the server made for us, landing at <paramref name="rest"/> (snapped to the
+        /// ground here). The server picks it up for us and says so through <see cref="RemoveNet"/>.
+        /// </summary>
+        public void SpawnNet(string id, LootDrop loot, Vector3 from, Vector3 rest, float secondsLeft)
+        {
+            if (netDrops.ContainsKey(id)) return;
+            var drop = SpawnOne(loot, from, Snap(rest), "");
+            drop.NetId = id;
+            drop.ExpireAt = Time.time + secondsLeft;
+            netDrops[id] = drop;
+        }
+
+        /// <summary>Online: the server picked a drop up for us (it flies to us) or it's gone.</summary>
+        public void RemoveNet(string id, bool picked)
+        {
+            if (!netDrops.TryGetValue(id, out var drop)) return;
+            netDrops.Remove(id);
+            if (picked && drop.Phase != Phase.Fly) ShowPickUp(drop, Time.time);
+            else
+            {
+                var index = active.IndexOf(drop);
+                if (index >= 0) Release(index);
+            }
+        }
+
+        Drop SpawnOne(LootDrop loot, Vector3 from, Vector3 rest, string source)
         {
             var drop = freeDrops.Count > 0 ? freeDrops.Pop() : new Drop();
             drop.Loot = loot;
@@ -156,7 +186,9 @@ namespace Wuxia.World
             drop.PhaseTime = now;
             drop.ExpireAt = now + rules.groundTime;
             drop.BlockedVersion = -1;
+            drop.NetId = null;
             active.Add(drop);
+            return drop;
         }
 
         void Update()
@@ -185,7 +217,7 @@ namespace Wuxia.World
                     continue;
                 }
 
-                if (now >= drop.ExpireAt || drop.Loot.Taken)
+                if ((now >= drop.ExpireAt && drop.NetId == null) || drop.Loot.Taken)
                 {
                     Release(i);
                     continue;
@@ -210,7 +242,8 @@ namespace Wuxia.World
                     drop.View.Disc.transform.localScale = DiscScale(1f + discPulse * wave);
                 }
 
-                if (!canLoot || now < drop.SpawnTime + rules.pickupDelay) continue;
+                // Online the server auto-loots and tells us (RemoveNet).
+                if (drop.NetId != null || !canLoot || now < drop.SpawnTime + rules.pickupDelay) continue;
                 var dx = drop.Rest.x - playerPos.x;
                 var dz = drop.Rest.z - playerPos.z;
                 if (dx * dx + dz * dz <= radius2) TryPickUp(drop, now);
@@ -237,7 +270,12 @@ namespace Wuxia.World
                 return;
             }
             if (result != PickupBlock.None) return; // AlreadyTaken: released next frame
+            ShowPickUp(drop, now);
+        }
 
+        /// <summary>The "+7 gold" / item name text, then the drop flies into the player.</summary>
+        void ShowPickUp(Drop drop, float now)
+        {
             var lift = player.Combatant.AimHeight;
             if (drop.Loot.IsGold)
                 floatingText.ShowAt(player.transform.position + Vector3.up * lift, $"+{drop.Loot.Gold} gold", goldColor, 0.9f);
@@ -258,6 +296,8 @@ namespace Wuxia.World
         {
             var drop = active[index];
             active.RemoveAt(index);
+            if (drop.NetId != null) netDrops.Remove(drop.NetId);
+            drop.NetId = null;
             GiveBackModel(drop.ModelPrefab, drop.Model);
             drop.View.gameObject.SetActive(false);
             drop.View.Disc.transform.localScale = discBase;

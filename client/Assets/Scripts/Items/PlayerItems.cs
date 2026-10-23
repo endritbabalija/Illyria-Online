@@ -515,6 +515,45 @@ namespace Wuxia.Items
             Bump();
         }
 
+        // ---- Online ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// Online: replaces everything with the server's copy (its item ids, rolls and counts). No
+        /// ledger entries: the server keeps the ledger. Raises <see cref="EquipmentChanged"/> for
+        /// every slot whose item changed and potion cooldowns follow the server's.
+        /// </summary>
+        /// <param name="bag">Bag slots in order; null for an empty slot.</param>
+        /// <param name="worn">Worn items by <see cref="EquipSlot"/> index; null for an empty slot.</param>
+        /// <param name="potionCooldowns">Seconds left per cooldown group.</param>
+        public void ApplyServerState(string characterId, int gold, IList<ItemInstance> bag, IList<ItemInstance> worn,
+            IList<string> quickSlotIds, IEnumerable<KeyValuePair<string, float>> potionCooldowns, float now)
+        {
+            CharacterId = characterId;
+            Wallet = new Wallet(Math.Max(0, gold));
+            Bag.Clear();
+            for (var i = 0; i < bag.Count && i < Bag.Capacity; i++)
+                if (bag[i] != null) Bag.Replace(i, bag[i]);
+
+            var changed = new List<EquipSlot>();
+            for (var s = 0; s < Equipment.SlotCount; s++)
+            {
+                var slot = (EquipSlot)s;
+                var item = s < worn.Count ? worn[s] : null;
+                var old = Equipment.Get(slot);
+                if ((old == null ? null : old.Id) != (item == null ? null : item.Id)) changed.Add(slot);
+                Equipment.Set(slot, item);
+            }
+
+            for (var i = 0; i < QuickSlotCount; i++)
+                quickSlots[i] = i < quickSlotIds.Count && !string.IsNullOrEmpty(quickSlotIds[i]) ? quickSlotIds[i] : null;
+
+            cooldownEnds.Clear();
+            foreach (var pair in potionCooldowns) cooldownEnds[pair.Key] = now + pair.Value;
+
+            foreach (var slot in changed) EquipmentChanged?.Invoke(slot);
+            Bump();
+        }
+
         // ---- Ledger ---------------------------------------------------------------------------
 
         static string Reason(string reason, string detail) => string.IsNullOrEmpty(detail) ? reason : reason + ": " + detail;

@@ -136,6 +136,22 @@ namespace Wuxia.Combat
             Spirit = Math.Min(Spirit, MaxSpirit);
         }
 
+        /// <summary>Online: the server's books, levels, points and kill meter replace ours.</summary>
+        public void SetProgress(IEnumerable<KeyValuePair<string, int>> books, int points, int meterKills)
+        {
+            bookLevels.Clear();
+            foreach (var pair in books) bookLevels[pair.Key] = pair.Value;
+            SkillPoints = Math.Max(0, points);
+            MeterKills = Math.Max(0, meterKills);
+            Version++;
+        }
+
+        /// <summary>Online: the server's Spirit (snapshots).</summary>
+        public void SetSpirit(float spirit) => Spirit = Math.Max(0f, Math.Min(MaxSpirit, spirit));
+
+        /// <summary>Online: the server's cooldown for a form (by form id) or the leap (by its book id).</summary>
+        public void SetCooldown(string key, float secondsLeft, float now) => readyAt[key] = now + Math.Max(0f, secondsLeft);
+
         void Spend(string key, int spirit, float cooldown, float now)
         {
             Spirit = Math.Max(0f, Spirit - spirit);

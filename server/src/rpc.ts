@@ -69,7 +69,7 @@ function rpcCharacterLoad(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: 
     if (!stored) throw rpcError(nkruntime.Codes.NOT_FOUND, 'no such character');
     var save = stored.save;
     var belongings = new Belongings(data, new ItemFactory(data, function () { return ''; }), save.characterId, save.belongings);
-    var online = isSessionLocked(save, null, Date.now());
+    var online = isHeldElsewhere(nk, save, null, Date.now());
     var view: any = deepCopy(save);
     delete view.session;
     return JSON.stringify({ character: view, online: online, stats: belongings.computeStats() });
@@ -82,7 +82,7 @@ function rpcCharacterDelete(ctx: nkruntime.Context, logger: nkruntime.Logger, nk
     var characterId = rpcCharacterId(data, rpcInput(payload).characterId);
     var stored = readCharacter(nk, data, userId, characterId);
     if (!stored) throw rpcError(nkruntime.Codes.NOT_FOUND, 'no such character');
-    if (isSessionLocked(stored.save, null, Date.now())) throw rpcError(nkruntime.Codes.FAILED_PRECONDITION, 'leave the zone first');
+    if (isHeldElsewhere(nk, stored.save, null, Date.now())) throw rpcError(nkruntime.Codes.FAILED_PRECONDITION, 'leave the zone first');
     try {
         deleteCharacter(nk, userId, stored);
     } catch (e) {

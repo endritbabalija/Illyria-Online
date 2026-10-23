@@ -5,6 +5,7 @@ using Wuxia.Data;
 using Wuxia.Input;
 using Wuxia.Items;
 using Wuxia.Monsters;
+using Wuxia.Net;
 using Wuxia.World;
 
 namespace Wuxia.Player
@@ -95,14 +96,17 @@ namespace Wuxia.Player
 
         void Update()
         {
+            // Online the server decides attacks, regen and the revive; their results arrive through Net.NetZone.
+            var online = NetZone.Online;
             if (IsDead)
             {
-                if (Time.time >= RespawnAt) Revive();
+                if (!online && Time.time >= RespawnAt) Revive();
                 return;
             }
 
             if (Target != null && (Target.IsDead || !Target.isActiveAndEnabled || FlatDistance(Target) > data.loseTargetRange))
                 ClearTarget();
+            if (online) return;
 
             if (Target != null && !IsDisabled && InAttackRange(Target) && Time.time >= nextAttackTime)
             {
@@ -131,6 +135,11 @@ namespace Wuxia.Player
         public void SwapWeapon()
         {
             if (IsDead) return;
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SendAction(Json.Object("a", "swap"));
+                return;
+            }
             var result = Items.SwapWeapon();
             if (result != EquipBlock.None) Tell(Describe(result));
         }
@@ -138,6 +147,7 @@ namespace Wuxia.Player
         /// <summary>Wears an item from the bag (inventory panel). Shows a notice when it can't.</summary>
         public EquipBlock Equip(string itemId)
         {
+            if (NetZone.Online) return Send(EquipBlock.None, "a", "equip", "item", itemId);
             var result = Items.Equip(itemId);
             if (result != EquipBlock.None) Tell(Describe(result));
             return result;
@@ -146,6 +156,7 @@ namespace Wuxia.Player
         /// <summary>Takes off a worn item into the bag. Shows a notice when it can't.</summary>
         public EquipBlock Unequip(EquipSlot slot)
         {
+            if (NetZone.Online) return Send(EquipBlock.None, "a", "unequip", "slot", slot.ToString().ToLowerInvariant());
             var result = Items.Unequip(slot);
             if (result != EquipBlock.None && result != EquipBlock.NotFound) Tell(Describe(result));
             return result;
@@ -154,6 +165,11 @@ namespace Wuxia.Player
         /// <summary>Potion button: drinks the quick slot's potion. Shows a notice when it can't.</summary>
         public UseBlock UseQuickSlot(int index)
         {
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SendAction(Json.Object("a", "quickUse", "slot", index), r => { if (r.ok) PotionUsed?.Invoke(); });
+                return UseBlock.None;
+            }
             var result = Items.UseQuickSlot(index, Time.time, this);
             if (result == UseBlock.None) PotionUsed?.Invoke();
             else Tell(Describe(result, Items.Data.FindItem(Items.QuickSlot(index) ?? "")));
@@ -163,6 +179,11 @@ namespace Wuxia.Player
         /// <summary>Drinks a potion from the bag (inventory panel). Shows a notice when it can't.</summary>
         public UseBlock UseItem(string defId)
         {
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SendAction(Json.Object("a", "use", "item", defId), r => { if (r.ok) PotionUsed?.Invoke(); });
+                return UseBlock.None;
+            }
             var result = Items.Use(defId, Time.time, this);
             if (result == UseBlock.None) PotionUsed?.Invoke();
             else Tell(Describe(result, Items.Data.FindItem(defId)));
@@ -172,6 +193,7 @@ namespace Wuxia.Player
         /// <summary>Buys from an NPC shop. Shows the reason (not enough gold, bag full) when it can't.</summary>
         public ShopBlock Buy(string shopId, string defId, int count)
         {
+            if (NetZone.Online) return Send(ShopBlock.None, "a", "buy", "shop", shopId, "item", defId, "count", count);
             var result = Items.Buy(shopId, defId, count);
             if (result != ShopBlock.None) Tell(Wuxia.UI.ItemText.Describe(result));
             return result;
@@ -180,14 +202,55 @@ namespace Wuxia.Player
         /// <summary>Sells from the bag to an NPC shop. Shows the reason when it can't.</summary>
         public ShopBlock Sell(string itemId, int count)
         {
+            if (NetZone.Online) return Send(ShopBlock.None, "a", "sell", "item", itemId, "count", count);
             var result = Items.Sell(itemId, count);
             if (result != ShopBlock.None) Tell(Wuxia.UI.ItemText.Describe(result));
             return result;
         }
 
-        /// <summary>Offline test helper until character select exists (M4): play as another character, with their starter kit.</summary>
+        /// <summary>
+        /// Moves a bag item to another slot (merging potions or swapping), from the inventory panel.
+        /// False when nothing moved; online the server's answer comes back as a new bag.
+        /// </summary>
+        public bool MoveItem(int from, int to)
+        {
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SendAction(Json.Object("a", "moveItem", "from", from, "to", to));
+                return true;
+            }
+            return Items.Bag.Move(from, to);
+        }
+
+        /// <summary>Puts a potion on a quick slot (the other slot trades places if it had it).</summary>
+        public bool AssignQuickSlot(int index, string defId)
+        {
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SendAction(Json.Object("a", "quickSlot", "slot", index, "item", defId));
+                return true;
+            }
+            return Items.AssignQuickSlot(index, defId);
+        }
+
+        /// <summary>Online item actions answer later; a refusal shows as a notice (the server's wording).</summary>
+        T Send<T>(T optimistic, params object[] message)
+        {
+            NetZone.Instance.SendAction(Json.Object(message));
+            return optimistic;
+        }
+
+        /// <summary>
+        /// Play as another character. Offline (test helper): with their starter kit. Online: rejoins
+        /// the zone as that character (created on first use), with their saved progress.
+        /// </summary>
         public void SetCharacter(string id)
         {
+            if (NetZone.Online)
+            {
+                NetZone.Instance.SwitchCharacter(id);
+                return;
+            }
             Character = GameData.Combat.GetCharacter(id);
             characterId = id;
             resetting = true;
@@ -195,6 +258,34 @@ namespace Wuxia.Player
             finally { resetting = false; }
             Combatant.SetDisplayName(Character.name);
             RefreshStats(true);
+        }
+
+        /// <summary>Online: the server says we play this character; its items and skills follow in the same message.</summary>
+        public void ApplyServerCharacter(string id, string displayName)
+        {
+            Character = GameData.Combat.GetCharacter(id);
+            characterId = id;
+            Combatant.SetDisplayName(string.IsNullOrEmpty(displayName) ? Character.name : displayName);
+        }
+
+        /// <summary>Online: the server resolved one of our basic attacks; play the swing (the hit lands on the target separately).</summary>
+        public void PlayServerAttack(Combatant target)
+        {
+            if (IsDead) return;
+            if (target != null) mover.FaceNow(target.transform.position - transform.position);
+            visuals.PlayAttack();
+            Attacked?.Invoke();
+        }
+
+        /// <summary>Online: the server revived us at the zone's respawn point.</summary>
+        public void ServerRevive(Vector3 position)
+        {
+            mover.Teleport(position, Quaternion.identity);
+            Combatant.RestoreFull();
+            visuals.ResetPose();
+            nextAttackTime = 0f;
+            Revived?.Invoke();
+            Debug.Log($"[Combat] {Combatant.DisplayName} revived at the Han");
         }
 
         void OnEquipmentChanged(EquipSlot slot)
@@ -284,6 +375,7 @@ namespace Wuxia.Player
         {
             SetTarget(target);
             Chasing = true;
+            if (NetZone.Online) NetZone.Instance.SendTarget(target);
         }
 
         public void StopChasing() => Chasing = false;

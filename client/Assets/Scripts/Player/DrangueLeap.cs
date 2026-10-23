@@ -1,6 +1,7 @@
 using UnityEngine;
 using Wuxia.Combat;
 using Wuxia.Data;
+using Wuxia.Net;
 using Wuxia.World;
 
 namespace Wuxia.Player
@@ -81,6 +82,8 @@ namespace Wuxia.Player
                 landingPoint = landing.Point;
                 body.enabled = false;
                 mover.FaceNow(landingPoint - start);
+                // Online the server checks the same landing; a refusal puts us back with a correction.
+                if (NetZone.Online) NetZone.Instance.SendLeap(ledge.name, aim);
                 Started?.Invoke(true);
             }
             else
@@ -88,6 +91,7 @@ namespace Wuxia.Player
                 phase = Phase.Dash;
                 dashDirection = aim;
                 mover.FaceNow(aim);
+                if (NetZone.Online) NetZone.Instance.SendLeap(null, aim);
                 Started?.Invoke(false);
             }
         }

@@ -217,6 +217,7 @@ interface ZonesData {
     movement: {
         speedTolerance: number;
         distanceSlack: number;
+        /** Seconds of run-speed movement a player can bank (the move budget cap), so updates may arrive in bursts. */
         maxGapSeconds: number;
         maxSlope: number;
         stepUp: number;

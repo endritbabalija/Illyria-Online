@@ -189674,6 +189674,70 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2014798080}
   m_Mesh: {fileID: 4300000, guid: 917339cfdad9b8e429105cae329c7b87, type: 2}
+--- !u!1 &2016495438
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2016495440}
+  - component: {fileID: 2016495439}
+  m_Layer: 0
+  m_Name: Net
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2016495439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016495438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f512d21071a3f3f4e9973117a72035e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Wuxia::Wuxia.Net.NetZone
+  connectOnStart: 1
+  scheme: http
+  host: 127.0.0.1
+  port: 7350
+  serverKey: defaultkey
+  zoneId: oak_valley
+  deviceIdSuffix: 
+  connectTimeout: 10
+  joinRetryDelay: 2
+  joinRetries: 8
+  sendInterval: 0.1
+  player: {fileID: 2062863495}
+  skills: {fileID: 2062863505}
+  leap: {fileID: 2062863503}
+  loot: {fileID: 1949440655}
+  viewCamera: {fileID: 465827305}
+  kreshnikModel: {fileID: 9139317147633424120, guid: ba62433e9e8c280438f321b2837a3de2, type: 3}
+  zanasChosenModel: {fileID: 8204065072932392619, guid: 2b2bb1a77c3f6b54bb6ff8f3f8879bee, type: 3}
+  labelTemplate: {fileID: 1846117075}
+  labelOffset: {x: 0, y: 2.3, z: 0}
+--- !u!4 &2016495440
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016495438}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2017598354
 GameObject:
   m_ObjectHideFlags: 0
@@ -202454,3 +202518,4 @@ SceneRoots:
   - {fileID: 127122995}
   - {fileID: 1196433541}
   - {fileID: 864770379}
+  - {fileID: 2016495440}

@@ -27,9 +27,12 @@ interface SimPlayer {
     pos: Vec3;
     yaw: number;
     onLedge: LedgeData | null;
-    /** Moves are checked against where the player was at the end of an earlier tick. */
-    moveAnchor: { pos: Vec3; t: number };
-    movedThisTick: boolean;
+    /**
+     * Metres the player may still walk: earned at run speed (with tolerance) per second of server
+     * time, banked up to maxGapSeconds' worth, spent by each accepted move. Moves arriving in
+     * uneven bursts pass; walking faster than run speed on average doesn't.
+     */
+    moveBudget: number;
     hp: number;
     lastDamagedAt: number;
     regenCarry: number;
@@ -157,8 +160,7 @@ class ZoneSim {
             pos: pos,
             yaw: yaw,
             onLedge: null,
-            moveAnchor: { pos: { x: pos.x, y: pos.y, z: pos.z }, t: this.now },
-            movedThisTick: false,
+            moveBudget: this.moveBudgetCap(),
             hp: hp,
             lastDamagedAt: -Infinity,
             regenCarry: 0,
@@ -245,24 +247,31 @@ class ZoneSim {
         var to = vec3(msg.x, msg.y, msg.z);
         var why = this.checkMove(p, to);
         if (why) {
+            this.log('[Move] ' + p.save.name + ' corrected (' + why + '): ' + q2(flatDistance(p.pos, to)) + ' m with ' + q2(p.moveBudget) +
+                ' m of budget, from (' + q2(p.pos.x) + ', ' + q2(p.pos.y) + ', ' + q2(p.pos.z) + ') to (' + q2(to.x) + ', ' + q2(to.y) + ', ' + q2(to.z) + ')');
             this.send(Op.Correction, { x: q2(p.pos.x), y: q2(p.pos.y), z: q2(p.pos.z), why: why }, [p.id]);
             return;
         }
         if (p.onLedge && (!overLedge(p.onLedge, to, 0.3) || to.y < ledgeTop(p.onLedge) - 1)) p.onLedge = null;
+        // May dip below zero by up to the slack (checkMove allows that much); it's paid back before the next move.
+        p.moveBudget -= flatDistance(p.pos, to);
         p.pos = to;
         if (isFiniteNumber(msg.yaw)) p.yaw = msg.yaw;
-        p.movedThisTick = true;
+    }
+
+    /** The most a move budget can bank: maxGapSeconds at run speed (with tolerance), plus the slack. */
+    private moveBudgetCap(): number {
+        var rules = this.data.zones.movement;
+        return this.data.combat.player.moveSpeed * rules.speedTolerance * rules.maxGapSeconds + rules.distanceSlack;
     }
 
     /** Null if the move is allowed, else why not. */
     checkMove(p: SimPlayer, to: Vec3): string | null {
         var rules = this.data.zones.movement;
-        var from = p.moveAnchor.pos;
+        var from = p.pos;
         var horizontal = flatDistance(from, to);
         if (p.statuses.isDisabled(this.now) && horizontal > rules.distanceSlack) return 'disabled';
-        var elapsed = Math.min(Math.max(0, this.now - p.moveAnchor.t), rules.maxGapSeconds);
-        var allowed = this.data.combat.player.moveSpeed * rules.speedTolerance * elapsed + rules.distanceSlack;
-        if (horizontal > allowed) return 'tooFast';
+        if (horizontal > p.moveBudget + rules.distanceSlack) return 'tooFast';
         if (to.y - from.y > horizontal * rules.maxSlope + rules.stepUp) return 'tooSteep';
         // Ledges are reached by Drangue Leap only, never by walking up them.
         for (var i = 0; i < this.zone.ledges.length; i++) {
@@ -485,7 +494,6 @@ class ZoneSim {
         p.pos = p.leap.to;
         p.onLedge = p.leap.ledge;
         p.leap = null;
-        p.moveAnchor = { pos: { x: p.pos.x, y: p.pos.y, z: p.pos.z }, t: this.now };
     }
 
     // ================================================================ item and book actions
@@ -614,16 +622,13 @@ class ZoneSim {
             var p = players[i];
             if (!this.players[p.id]) continue;
             this.afterItemsChanged(p);
-            if (p.movedThisTick) {
-                p.moveAnchor = { pos: { x: p.pos.x, y: p.pos.y, z: p.pos.z }, t: this.now };
-                p.movedThisTick = false;
-            }
         }
         this.flush();
     }
 
     private updatePlayer(p: SimPlayer, dt: number): void {
         var combat = this.data.combat.player;
+        p.moveBudget = Math.min(this.moveBudgetCap(), p.moveBudget + combat.moveSpeed * this.data.zones.movement.speedTolerance * dt);
         if (p.dead) {
             if (this.now >= p.respawnAt) this.revive(p);
             return;
@@ -696,7 +701,6 @@ class ZoneSim {
         p.lastDamagedAt = -Infinity;
         p.nextAttackAt = 0;
         p.castEnd = 0;
-        p.moveAnchor = { pos: { x: spot.pos.x, y: spot.pos.y, z: spot.pos.z }, t: this.now };
         this.event({ k: 'revive', id: p.id, at: [spot.pos.x, spot.pos.y, spot.pos.z] });
         this.send(Op.Correction, { x: spot.pos.x, y: spot.pos.y, z: spot.pos.z, why: 'revive' }, [p.id]);
         this.log('[Combat] ' + p.save.name + ' revived at ' + this.zone.name + "'s respawn point");
@@ -1228,18 +1232,24 @@ class ZoneSim {
         };
     }
 
+    /**
+     * The player's private state. Maps the client would key by name (books, cooldowns) are sent
+     * as lists, so Unity's JsonUtility can read them.
+     */
     selfState(p: SimPlayer): any {
         var s = p.stats;
-        var cooldowns: { [key: string]: number } = {};
+        var cooldowns: { id: string; left: number }[] = [];
         for (var key in p.skills.readyAt) {
             var left = p.skills.cooldownLeft(key, this.now);
-            if (left > 0) cooldowns[key] = q2(left);
+            if (left > 0) cooldowns.push({ id: key, left: q2(left) });
         }
-        var potionCooldowns: { [group: string]: number } = {};
+        var potionCooldowns: { id: string; left: number }[] = [];
         for (var g in p.items.cooldownEnds) {
             var pl = p.items.cooldownEnds[g] - this.now;
-            if (pl > 0) potionCooldowns[g] = q2(pl);
+            if (pl > 0) potionCooldowns.push({ id: g, left: q2(pl) });
         }
+        var books: { id: string; level: number }[] = [];
+        for (var book in p.skills.progress.books) books.push({ id: book, level: p.skills.progress.books[book] });
         return {
             characterId: p.save.characterId,
             name: p.save.name,
@@ -1251,7 +1261,7 @@ class ZoneSim {
                 weaponType: s.weaponType, maxHp: s.maxHp, maxSpirit: s.maxSpirit, defense: s.defense, dodge: s.dodge,
                 resist: s.resist, attack: s.attack, skillDamage: s.skillDamage, skillDefense: s.skillDefense,
             },
-            skills: p.skills.progress,
+            skills: { books: books, points: p.skills.progress.points, meterKills: p.skills.progress.meterKills },
             kills: p.save.kills,
             cooldowns: cooldowns,
             potionCooldowns: potionCooldowns,

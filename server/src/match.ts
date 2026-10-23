@@ -70,7 +70,7 @@ function matchJoinAttempt(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: 
     if (channel.sim.playerCount() + keysOf(channel.pending).length >= channel.cap) return reject('this channel is full');
     var stored = readCharacter(nk, data, presence.userId, characterId);
     if (!stored) return reject('no such character; create it first');
-    if (isSessionLocked(stored.save, ctx.matchId || null, Date.now())) return reject('that character is still in another zone; try again in a moment');
+    if (isHeldElsewhere(nk, stored.save, ctx.matchId || null, Date.now())) return reject('that character is still in another zone; try again in a moment');
     channel.pending[presence.userId] = stored;
     return { state: state, accept: true };
 }

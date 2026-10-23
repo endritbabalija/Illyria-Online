@@ -152,7 +152,7 @@ namespace Wuxia.UI
             // The stack may have shifted or gone since Move was pressed (a potion drunk, a sale).
             var from = bag.Get(movingFrom) != null && bag.Get(movingFrom).Id == movingId ? movingFrom : bag.IndexOf(movingId);
             StopMove();
-            if (from >= 0 && from != index) bag.Move(from, index);
+            if (from >= 0 && from != index) combat.MoveItem(from, index);
             // Follow the item to where it went (or the stack it merged into).
             Select(bag.Get(index) ?? bag.Find(selectedId));
         }
@@ -194,7 +194,7 @@ namespace Wuxia.UI
         {
             var item = Selected();
             if (item == null || !item.Def.IsUsable) return;
-            if (combat.Items.AssignQuickSlot(index, item.DefId))
+            if (combat.AssignQuickSlot(index, item.DefId))
                 combat.Tell($"{item.Def.name} on quick slot {index + 1}");
         }
 

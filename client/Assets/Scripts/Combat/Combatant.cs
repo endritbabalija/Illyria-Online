@@ -133,6 +133,29 @@ namespace Wuxia.Combat
             return result;
         }
 
+        /// <summary>
+        /// Online: a hit the server already decided. Applies it like a local one (combat text,
+        /// Damaged, Died at 0 HP) without rolling anything. <paramref name="attacker"/> may be null
+        /// (another player, who has no Combatant here).
+        /// </summary>
+        public void ReceiveHit(Combatant attacker, AttackResult result) => ApplyHit(attacker, result);
+
+        /// <summary>Online: the server's HP for this combatant (snapshots). No events; a death comes as its own event.</summary>
+        public void SetHp(int hp, int maxHp)
+        {
+            MaxHp = Mathf.Max(1, maxHp);
+            if (!IsDead) Hp = Mathf.Clamp(hp, 1, MaxHp);
+        }
+
+        /// <summary>Online: the server says this combatant died (in case the hits that did it went unseen).</summary>
+        public void Kill(Combatant killer)
+        {
+            if (IsDead) return;
+            Hp = 0;
+            Statuses.Clear();
+            Died?.Invoke(killer);
+        }
+
         public void ApplyStatus(StatusData data, float duration, int tickDamage, Combatant source)
         {
             if (IsDead) return;

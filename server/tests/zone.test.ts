@@ -298,13 +298,45 @@ test('zone: moves faster than the run speed are corrected', function () {
     eq(c.why, 'tooFast');
     eq([c.x, c.z], [-16, -178]);
     eq(p.pos.z, -178);
-    // Walking at run speed is fine, message after message.
+    // Walking at run speed is fine, message after message, even with a little jitter (0.5–0.7 m a message).
+    var z = -178;
     for (var i = 1; i <= 20; i++) {
-        sim.handle('alice', Op.Move, { x: -16, y: 0, z: -178 + i * 0.55, yaw: 0 });
+        z += i % 2 === 0 ? 0.7 : 0.4;
+        sim.handle('alice', Op.Move, { x: -16, y: 0, z: z, yaw: 0 });
         sim.step(TICK);
     }
     eq(messagesFor(drain(sim), 'alice', Op.Correction).length, 0);
-    near(p.pos.z, -167, 1e-9);
+    near(p.pos.z, z, 1e-9);
+});
+
+test('zone: moves arriving in uneven bursts pass; running faster than run speed does not', function () {
+    var sim = newSim();
+    var p = join(sim, 'alice', 'kreshnik');
+    run(sim, 1);
+    drain(sim);
+    // Run speed (5.5 m/s) sent every ~0.12 s, but delivered unevenly: nothing for a tick, then two or three at once.
+    var z = p.pos.z, sent = 0;
+    for (var t = 0; t < 40; t++) {
+        var burst = t % 3 === 0 ? 0 : t % 3 === 1 ? 1 : 2;
+        for (var b = 0; b < burst; b++) {
+            z += 5.5 * 0.12;
+            sent++;
+            sim.handle('alice', Op.Move, { x: p.pos.x, y: 0, z: z, yaw: 0 });
+        }
+        sim.step(TICK * (sent > 0 ? 1.2 : 1));
+    }
+    eq(messagesFor(drain(sim), 'alice', Op.Correction).length, 0, 'no corrections');
+    near(p.pos.z, z, 1e-9);
+
+    // 8 m/s, steadily: the budget runs out and the server says no.
+    var why: string | null = null;
+    for (var i = 0; i < 80 && !why; i++) {
+        sim.handle('alice', Op.Move, { x: p.pos.x, y: 0, z: p.pos.z + 0.8, yaw: 0 });
+        sim.step(TICK);
+        var c = messagesFor(drain(sim), 'alice', Op.Correction);
+        if (c.length > 0) why = c[0].why;
+    }
+    eq(why, 'tooFast');
 });
 
 test('zone: walking up onto a ledge is refused; leaping onto it is allowed', function () {

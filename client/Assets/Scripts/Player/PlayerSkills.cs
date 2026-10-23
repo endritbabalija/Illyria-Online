@@ -4,6 +4,7 @@ using UnityEngine;
 using Wuxia.Combat;
 using Wuxia.Data;
 using Wuxia.Monsters;
+using Wuxia.Net;
 using Wuxia.World;
 
 namespace Wuxia.Player
@@ -134,6 +135,12 @@ namespace Wuxia.Player
                 case LevelUpBlock.NotEnoughPoints: Notice?.Invoke($"Needs {cost} skill points"); return false;
                 case LevelUpBlock.NotLearned: Notice?.Invoke($"You haven't learned {book.name}"); return false;
             }
+            if (NetZone.Online)
+            {
+                // The server spends the points; its answer comes back as our new skills.
+                NetZone.Instance.SendAction(Json.Object("a", "levelBook", "book", bookId));
+                return true;
+            }
             State.LevelUp(bookId);
             Debug.Log($"[Skill] {book.name} raised to level {State.BookLevel(bookId)} for {cost} point(s); {State.SkillPoints} left");
             return true;
@@ -209,6 +216,13 @@ namespace Wuxia.Player
             else visuals.PlayAttack();
             FormCast?.Invoke(form);
 
+            if (NetZone.Online)
+            {
+                fx.Play(form, origin, facing, target != null ? target.transform.position : origin);
+                SendCast(form, target, facing);
+                return;
+            }
+
             // Copy first: monsters leave MonsterAI.Alive as they die from this very hit.
             candidates.Clear();
             positions.Clear();
@@ -227,6 +241,29 @@ namespace Wuxia.Player
 
             fx.Play(form, origin, facing, target != null ? target.transform.position : origin);
             Debug.Log($"[Skill] {form.name} ({slot.Book.name} Lv {level}) hit {hits.Count} target(s)");
+        }
+
+        /// <summary>Online: the cast is played here at once; the server decides what it hits.</summary>
+        void SendCast(FormData form, Combatant target, Vector3 facing)
+        {
+            var monster = target != null ? target.GetComponent<MonsterAI>() : null;
+            NetZone.Instance.SendCast(form.id, monster != null ? monster.NetId : null, facing);
+        }
+
+        /// <summary>Online: the server's books, points, kill meter and cooldowns.</summary>
+        public void ApplyServerSkills(NetSkills skills, NetCooldown[] cooldowns)
+        {
+            var books = new List<KeyValuePair<string, int>>();
+            if (skills.books != null)
+                foreach (var b in skills.books)
+                    if (!string.IsNullOrEmpty(b.id)) books.Add(new KeyValuePair<string, int>(b.id, b.level));
+            var knownBefore = 0;
+            foreach (var book in GameData.Skills.books) if (State.Knows(book.id)) knownBefore++;
+            State.SetProgress(books, skills.points, skills.meterKills);
+            if (cooldowns != null)
+                foreach (var c in cooldowns)
+                    if (!string.IsNullOrEmpty(c.id)) State.SetCooldown(c.id, c.left, Time.time);
+            if (books.Count != knownBefore) RebuildSlots();
         }
 
         bool InReach(FormData form, Combatant target) =>
@@ -282,6 +319,7 @@ namespace Wuxia.Player
 
         void OnKill(int totalKills)
         {
+            if (NetZone.Online) return; // the server fills the meter and sends our points
             if (!State.AddKill()) return;
             Notice?.Invoke("Skill point earned");
             Debug.Log($"[Skill] Skill point earned ({State.SkillPoints} unspent)");
