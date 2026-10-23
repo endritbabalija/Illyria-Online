@@ -56,8 +56,8 @@ namespace Wuxia.Player
         /// <summary><see cref="Stats"/> was recomputed (gear changed).</summary>
         public event Action StatsChanged;
         public event Action Revived;
-        /// <summary>A basic attack swung or shot at the target (before its result is known).</summary>
-        public event Action Attacked;
+        /// <summary>A basic attack swung or shot at this target (before its result is known).</summary>
+        public event Action<Combatant> Attacked;
         /// <summary>A potion was drunk, from a quick slot or the bag.</summary>
         public event Action PotionUsed;
 
@@ -112,7 +112,7 @@ namespace Wuxia.Player
             {
                 nextAttackTime = Time.time + Stats.Attack.interval;
                 visuals.PlayAttack();
-                Attacked?.Invoke();
+                Attacked?.Invoke(Target);
                 Combatant.BasicAttack(Target);
             }
 
@@ -275,7 +275,7 @@ namespace Wuxia.Player
             if (IsDead) return;
             if (target != null) mover.FaceNow(target.transform.position - transform.position);
             visuals.PlayAttack();
-            Attacked?.Invoke();
+            Attacked?.Invoke(target);
         }
 
         /// <summary>Online: the server revived us at the zone's respawn point.</summary>

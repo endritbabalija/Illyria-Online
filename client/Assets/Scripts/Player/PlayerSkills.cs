@@ -31,6 +31,8 @@ namespace Wuxia.Player
         [SerializeField] PlayerController mover;
         [SerializeField] CombatVisuals visuals;
         [SerializeField] SkillFx fx;
+        [Tooltip("Blade trails, slashes, arrows and impacts of our forms and bow shots.")]
+        [SerializeField] CombatEffects effects;
         [Tooltip("A queued form that still can't fire after this many seconds is dropped.")]
         [SerializeField] float queueTimeout = 3f;
 
@@ -51,13 +53,18 @@ namespace Wuxia.Player
         readonly List<System.Numerics.Vector3> positions = new List<System.Numerics.Vector3>();
         readonly List<int> hits = new List<int>();
         PlayerCombat combat;
+        PlayerAppearance appearance;
         string characterId;
         float castEnd;
         int queued = -1;
         float queuedAt;
         bool queuedEngaged;
 
-        void Awake() => combat = GetComponent<PlayerCombat>();
+        void Awake()
+        {
+            combat = GetComponent<PlayerCombat>();
+            appearance = GetComponent<PlayerAppearance>();
+        }
 
         void Start()
         {
@@ -75,6 +82,7 @@ namespace Wuxia.Player
             combat.LoadoutChanged += OnLoadoutChanged;
             combat.StatsChanged += OnStatsChanged;
             combat.Revived += OnRevived;
+            combat.Attacked += OnBasicAttack;
         }
 
         void OnDisable()
@@ -82,6 +90,7 @@ namespace Wuxia.Player
             combat.LoadoutChanged -= OnLoadoutChanged;
             combat.StatsChanged -= OnStatsChanged;
             combat.Revived -= OnRevived;
+            combat.Attacked -= OnBasicAttack;
         }
 
         void Update()
@@ -216,6 +225,8 @@ namespace Wuxia.Player
             else visuals.PlayAttack();
             FormCast?.Invoke(form);
 
+            if (effects != null) effects.PlayForm(form, combat.Weapon.id, origin, facing, target, Hands, combat.Combatant);
+
             if (NetZone.Online)
             {
                 fx.Play(form, origin, facing, target != null ? target.transform.position : origin);
@@ -316,6 +327,14 @@ namespace Wuxia.Player
         }
 
         void OnRevived() => State.RestoreSpirit();
+
+        /// <summary>Bows send a visible arrow with each basic attack.</summary>
+        void OnBasicAttack(Combatant target)
+        {
+            if (effects != null) effects.PlayBasic(combat.Weapon.id, Hands, transform.position, target);
+        }
+
+        WeaponHands Hands => appearance != null ? appearance.Hands : default;
 
         void OnKill(int totalKills)
         {

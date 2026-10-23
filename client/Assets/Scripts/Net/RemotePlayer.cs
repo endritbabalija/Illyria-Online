@@ -51,6 +51,11 @@ namespace Wuxia.Net
 
         public float AttackWeight => actions != null ? actions.AttackWeight : 0f;
 
+        /// <summary>Weapon type in hand (combat.json), or null before the first snapshot names it.</summary>
+        public WeaponData Weapon => WeaponType();
+        /// <summary>Its model's weapon pivots, for blade trails and arrows.</summary>
+        public Combat.WeaponHands Hands => weapons != null ? weapons.Hands : default;
+
         /// <param name="look">Our own player's animator and appearance: the action clips, their tuning and the weapon models.</param>
         public void Init(string id, string displayName, string characterId, Vector3 position, float yaw, PlayerAnimator clips, PlayerAppearance look)
         {

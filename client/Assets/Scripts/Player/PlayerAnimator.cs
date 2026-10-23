@@ -115,7 +115,7 @@ namespace Wuxia.Player
             else play.SetAnimator(target);
         }
 
-        void OnBasicAttack() => play.PlayBasic(combat.Weapon.id, combat.Stats.Attack.interval);
+        void OnBasicAttack(Combatant target) => play.PlayBasic(combat.Weapon.id, combat.Stats.Attack.interval);
 
         void OnFormCast(FormData form) => play.PlayForm(form.id, form.castTime, combat.Weapon.id, combat.Stats.Attack.interval);
 

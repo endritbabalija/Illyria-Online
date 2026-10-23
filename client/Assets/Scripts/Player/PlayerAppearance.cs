@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Wuxia.Combat;
 using Wuxia.World;
 
 namespace Wuxia.Player
@@ -52,6 +53,9 @@ namespace Wuxia.Player
         MaterialPropertyBlock block;
         // One instance per item model, made the first time it's wielded and kept under the pivot.
         readonly Dictionary<string, GameObject> itemInstances = new Dictionary<string, GameObject>();
+
+        /// <summary>The weapon pivots on the active model's hands.</summary>
+        public WeaponHands Hands => new WeaponHands { Main = weaponPivot, OffHand = offHandPivot };
 
         void Awake() => block = new MaterialPropertyBlock();
 
@@ -123,6 +127,9 @@ namespace Wuxia.Player
             // One instance per item model key or greybox weapon type, made when first wielded.
             readonly Dictionary<string, GameObject[]> instances = new Dictionary<string, GameObject[]>();
             GameObject[] shown;
+
+            /// <summary>The pivots on the model's hands.</summary>
+            public WeaponHands Hands => new WeaponHands { Main = pivot, OffHand = offHandPivot };
 
             public WeaponRig(PlayerAppearance source, Transform pivot, Transform offHandPivot)
             {

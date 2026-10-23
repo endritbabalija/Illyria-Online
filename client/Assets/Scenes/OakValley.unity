@@ -7973,6 +7973,66 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &83864926
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 83864927}
+  - component: {fileID: 83864928}
+  m_Layer: 0
+  m_Name: CombatEffects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &83864927
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 83864926}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2069920170}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &83864928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 83864926}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b196d15797f49141a1c067a10c3b753, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Wuxia::Wuxia.Combat.CombatEffects
+  set: {fileID: 11400000, guid: aabe4c47d38e58e468358669715bd3ac, type: 2}
+  arrowSpeed: 45
+  arrowScale: 1.6
+  arrowArc: 0.03
+  arrowTrailTime: 0.12
+  arrowTrailWidth: 0.22
+  rainHeight: 9
+  rainSpread: 0.45
+  muzzleHeight: 1.4
+  waveSpeed: 14
+  waveSpacing: 1.6
+  bladeTrailTime: 0.25
+  bladeTrailWidth: 0.9
+  flashTime: 0.1
+  flashGlow: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+  prewarm: 2
 --- !u!1 &86061921
 GameObject:
   m_ObjectHideFlags: 0
@@ -193126,6 +193186,7 @@ MonoBehaviour:
   leap: {fileID: 2062863503}
   loot: {fileID: 1949440655}
   skillFx: {fileID: 466614564}
+  combatEffects: {fileID: 83864928}
   playerAnimator: {fileID: 2062863508}
   playerAppearance: {fileID: 2062863509}
   viewCamera: {fileID: 465827305}
@@ -197826,6 +197887,10 @@ PrefabInstance:
       propertyPath: fx
       value: 
       objectReference: {fileID: 466614564}
+    - target: {fileID: 1509950620201771859, guid: dfee5faca3c64ea4d88f10db8f88d090, type: 3}
+      propertyPath: effects
+      value: 
+      objectReference: {fileID: 83864928}
     - target: {fileID: 3039621169370812101, guid: dfee5faca3c64ea4d88f10db8f88d090, type: 3}
       propertyPath: controls
       value: 
@@ -198628,6 +198693,7 @@ Transform:
   - {fileID: 949735022}
   - {fileID: 894343640}
   - {fileID: 935795784}
+  - {fileID: 83864927}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2070412732

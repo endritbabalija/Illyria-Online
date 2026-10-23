@@ -74,6 +74,8 @@ namespace Wuxia.Net
         [SerializeField] DrangueLeap leap;
         [SerializeField] GroundLoot loot;
         [SerializeField] SkillFx skillFx;
+        [Tooltip("Other players' form effects and bow shots.")]
+        [SerializeField] CombatEffects combatEffects;
         [Tooltip("The player's clips and weapon models, copied for other players.")]
         [SerializeField] PlayerAnimator playerAnimator;
         [SerializeField] PlayerAppearance playerAppearance;
@@ -592,7 +594,11 @@ namespace Wuxia.Net
             }
             if (e.src == you && e.kind == "basic") player.PlayServerAttack(target);
             else if (e.kind == "basic" && target != null && players.TryGetValue(e.src ?? "", out var striker) && striker != null)
+            {
                 striker.PlayAttack(target.transform.position);
+                if (combatEffects != null && striker.Weapon != null)
+                    combatEffects.PlayBasic(striker.Weapon.id, striker.Hands, striker.transform.position, target);
+            }
             if (!e.miss && players.TryGetValue(e.dst ?? "", out var struck) && struck != null) struck.Flinch();
             if (target == null) return;
             target.ReceiveHit(attacker, new AttackResult
@@ -612,9 +618,11 @@ namespace Wuxia.Net
             if (form == null) return;
             var aimed = CombatantOf(e.tgt);
             caster.PlayForm(form, aimed != null ? aimed.transform.position : (Vector3?)null);
-            if (skillFx == null) return;
             var origin = caster.transform.position;
             var facing = e.dir != null && e.dir.Length == 2 ? new Vector3(e.dir[0], 0f, e.dir[1]) : caster.transform.forward;
+            if (combatEffects != null && caster.Weapon != null)
+                combatEffects.PlayForm(form, caster.Weapon.id, origin, facing, aimed, caster.Hands);
+            if (skillFx == null) return;
             skillFx.Play(form, origin, facing.normalized, aimed != null ? aimed.transform.position : origin);
         }
 
