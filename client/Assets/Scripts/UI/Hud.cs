@@ -56,6 +56,7 @@ namespace Wuxia.UI
         [Header("Notices")]
         [SerializeField] Text noticeText;
         [SerializeField] float noticeDuration = 1.6f;
+        [SerializeField] float areaNoticeDuration = 2.5f;
         [Tooltip("Where notices sit while a panel is open: this far below the top of the safe area, clear of the panels.")]
         [SerializeField] float noticeTopWhilePanelOpen = 46f;
 
@@ -80,7 +81,8 @@ namespace Wuxia.UI
             skillsButton.onClick.AddListener(ToggleSkills);
             bagButton.onClick.AddListener(inventoryPanel.Toggle);
             panelBackdrop.onClick.AddListener(OnBackdrop);
-            zoneText.text = ZoneSession.Instance.ZoneName;
+            ShowArea(ZoneSession.Instance.Area, false);
+            ZoneSession.Instance.AreaChanged += OnAreaChanged;
             deathOverlay.SetActive(false);
             skillsPanel.Close();
             shopPanel.EndSession();
@@ -102,6 +104,29 @@ namespace Wuxia.UI
         {
             player.LoadoutChanged -= OnLoadoutChanged;
             skills.Notice -= ShowNotice;
+        }
+
+        void OnDestroy()
+        {
+            if (ZoneSession.Instance != null) ZoneSession.Instance.AreaChanged -= OnAreaChanged;
+        }
+
+        void OnAreaChanged(ZoneArea area) => ShowArea(area, true);
+
+        // Top-right reads "Oak Valley · Oak Forest  Lv 5–8"; walking into an area also flashes its name.
+        void ShowArea(ZoneArea area, bool announce)
+        {
+            var zone = ZoneSession.Instance.ZoneName;
+            if (area == null)
+            {
+                zoneText.text = zone;
+                return;
+            }
+            var levels = area.LevelText;
+            zoneText.text = levels.Length > 0
+                ? $"{zone} · {area.AreaName}  <size=22>{levels}</size>"
+                : $"{zone} · {area.AreaName}";
+            if (announce) ShowNotice(levels.Length > 0 ? $"{area.AreaName} · {levels}" : area.AreaName, areaNoticeDuration);
         }
 
         void ToggleSkills()
@@ -138,10 +163,12 @@ namespace Wuxia.UI
                 : $"{player.Weapon.name}\n<size=22>no other weapon</size>";
         }
 
-        void ShowNotice(string message)
+        void ShowNotice(string message) => ShowNotice(message, noticeDuration);
+
+        void ShowNotice(string message, float duration)
         {
             noticeText.text = message;
-            noticeUntil = Time.time + noticeDuration;
+            noticeUntil = Time.time + duration;
         }
 
         void Update()

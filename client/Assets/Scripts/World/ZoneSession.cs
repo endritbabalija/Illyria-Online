@@ -6,8 +6,9 @@ using Wuxia.Data;
 namespace Wuxia.World
 {
     /// <summary>
-    /// Per-zone root: loads the shared game data, knows the player and the Han respawn point, and
-    /// counts kills. Runs first so everything else can read <see cref="GameData"/> from Start on.
+    /// Per-zone root: loads the shared game data, knows the player and the Han respawn point, counts
+    /// kills and tracks which <see cref="ZoneArea"/> the player is in. Runs first so everything else can
+    /// read <see cref="GameData"/> from Start on.
     /// </summary>
     [DefaultExecutionOrder(-200)]
     public class ZoneSession : MonoBehaviour
@@ -25,15 +26,23 @@ namespace Wuxia.World
         [SerializeField] Transform respawnPoint;
         [SerializeField] Combatant player;
         [SerializeField] int targetFrameRate = 60;
+        [Tooltip("Seconds between checks of which area the player stands in.")]
+        [SerializeField] float areaCheckInterval = 0.25f;
+
+        float nextAreaCheck;
 
         public string ZoneName => zoneName;
         public Transform RespawnPoint => respawnPoint;
         public Combatant Player => player;
         public int Kills { get; private set; }
+        /// <summary>The area the player is in (null between areas).</summary>
+        public ZoneArea Area { get; private set; }
 
         public event Action<int> KillsChanged;
         /// <summary>A monster the player killed just died (before <see cref="KillsChanged"/>); roll its loot here.</summary>
         public event Action<Combatant> MonsterSlain;
+        /// <summary>The player walked into another area (null: none).</summary>
+        public event Action<ZoneArea> AreaChanged;
 
         void Awake()
         {
@@ -46,6 +55,18 @@ namespace Wuxia.World
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+        }
+
+        void Update()
+        {
+            if (player == null || Time.time < nextAreaCheck) return;
+            nextAreaCheck = Time.time + areaCheckInterval;
+            var area = ZoneArea.At(player.transform.position);
+            if (area == Area) return;
+            Area = area;
+            if (area != null)
+                Debug.Log($"[Zone] Entered {area.AreaName} in {zoneName}{(area.LevelText.Length > 0 ? $" ({area.LevelText})" : "")}");
+            AreaChanged?.Invoke(area);
         }
 
         public void RegisterKill(Combatant monster)

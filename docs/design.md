@@ -130,6 +130,8 @@ The slice world is one shared town and four instanced areas. Every trip starts i
 | **Kulshedra's Cave** | 20–30 | Dungeon, one copy per party of 1–4 | 3 chambers and the Young Kulshedra boss; drops the Kulshedra Hunter set, Warding Charms and Zana Silver |
 | **Kulla War map** | 20+ | Scheduled battlefield | Three stone towers (kulla) to hold, banner spawn points |
 
+**Oak Valley layout** (south to north, about a 70-second run gate to gate; mood boards in `docs/art/oak-valley/`): the south gate to Dardana with the zone's Han beside it; the meadow (Lv 1–4) with a shepherd and his flock; the oak forest (Lv 5–8) around a dried spring; a river crossed only by one stone bridge; then the upper valley (Lv 8–12) with a bandit camp at a ruined tower on a hill (Lv 8–11) and a wolf den under the east slopes (Lv 11–12); the north pass leads on to Serpent Marsh (Lv 12–25). Each part shows its name and level band when you walk in.
+
 ## Progression and quests
 
 The slice runs from level 1 to 30, roughly the first week of play. Levels are shown as ranks, an original take on Hero Online's Kyu/Dan: Novice (1–9), Warrior (10–19), Champion (20–29) and Kreshnik (30). So "Warrior 4" means level 14.
