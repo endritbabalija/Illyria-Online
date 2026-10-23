@@ -659,20 +659,22 @@ namespace Wuxia.EditorTools
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.SaveAndReimport();
 
-                var m = Mat("Foliage", Color.white);
+                // Wuxia/Foliage is URP Lit plus the camera occluder fade (CameraOccluderFade).
+                var m = Mat("Foliage", Color.white, shader: "Wuxia/Foliage");
                 m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(path));
                 return m;
             }
 
-            static Material Mat(string name, Color colour, float smoothness = 0.08f, Color? emission = null)
+            static Material Mat(string name, Color colour, float smoothness = 0.08f, Color? emission = null, string shader = "Universal Render Pipeline/Lit")
             {
                 var path = $"{ArtRoot}/Materials/{name}.mat";
                 var m = AssetDatabase.LoadAssetAtPath<Material>(path);
                 if (m == null)
                 {
-                    m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                    m = new Material(Shader.Find(shader));
                     AssetDatabase.CreateAsset(m, path);
                 }
+                else if (m.shader.name != shader) m.shader = Shader.Find(shader);
                 m.SetColor("_BaseColor", colour);
                 m.SetFloat("_Smoothness", smoothness);
                 m.SetFloat("_Metallic", 0f);

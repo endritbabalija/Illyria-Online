@@ -46980,6 +46980,7 @@ GameObject:
   - component: {fileID: 465827305}
   - component: {fileID: 465827304}
   - component: {fileID: 465827303}
+  - component: {fileID: 465827307}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -47084,6 +47085,31 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &465827307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 465827302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1221057bf496d86458b67c13c8c1014b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Wuxia::Wuxia.Player.CameraOccluderFade
+  chestHeight: 1.3
+  radius: 2
+  edgeSoftness: 0.5
+  endSoftness: 1.5
+  nearRadius: 2
+  nearSoftness: 0.75
+  maxFade: 1
+  fadeInTime: 0.3
+  fadeOutTime: 0.5
+  occluders:
+    serializedVersion: 2
+    m_Bits: 2048
+  crownMargin: 8
 --- !u!1 &466478817
 GameObject:
   m_ObjectHideFlags: 0
@@ -66337,6 +66363,7 @@ GameObject:
   m_Component:
   - component: {fileID: 665331752}
   - component: {fileID: 665331753}
+  - component: {fileID: 665331754}
   m_Layer: 0
   m_Name: Firelight
   m_TagString: Untagged
@@ -66424,6 +66451,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &665331754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 665331751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &666181459
 GameObject:
   m_ObjectHideFlags: 0

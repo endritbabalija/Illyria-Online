@@ -20,6 +20,8 @@ namespace Wuxia.Player
 
         float yaw;
 
+        public Transform Target => target;
+
         void Start() => yaw = target.eulerAngles.y;
 
         void LateUpdate()
