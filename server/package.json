@@ -6,7 +6,9 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node build-test/tests.js",
+    "test:integration": "node tests/integration.mjs"
   },
   "dependencies": {
     "nakama-runtime": "github:heroiclabs/nakama-common#v1.48.0"

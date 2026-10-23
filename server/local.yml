@@ -7,6 +7,10 @@ runtime:
 session:
   token_expiry_sec: 7200 # 2 hours
   refresh_token_expiry_sec: 604800 # 7 days
+  # One socket and one match per account: a second login drops the first, and joining a zone
+  # leaves the previous one (whose save then releases the character's session lock).
+  single_socket: true
+  single_match: true
 console:
   max_message_size_bytes: 409600
 socket:

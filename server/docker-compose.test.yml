@@ -1,0 +1,43 @@
+# A throwaway Nakama + Postgres for the integration tests: its own project name, ports and an
+# in-memory database, so it runs next to the dev stack (docker-compose.yml) without touching it.
+#   docker compose -f server/docker-compose.test.yml up -d --build --wait
+#   npm --prefix server run test:integration
+#   docker compose -f server/docker-compose.test.yml down
+name: wuxia-test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=nakama
+      - POSTGRES_PASSWORD=localdb
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "nakama"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  nakama:
+    build:
+      context: .
+      additional_contexts:
+        gamedata: ../shared/gamedata
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - "/bin/sh"
+      - "-ecx"
+      - >
+        /nakama/nakama migrate up --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable &&
+        exec /nakama/nakama --config /nakama/data/local.yml --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable
+    ports:
+      - "17350:7350" # HTTP/WebSocket API
+      - "17351:7351" # Developer console
+    healthcheck:
+      test: ["CMD", "/nakama/nakama", "healthcheck"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
