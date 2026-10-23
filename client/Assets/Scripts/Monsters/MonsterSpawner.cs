@@ -42,15 +42,19 @@ namespace Wuxia.Monsters
                     member.Assist(attacker, caller.transform.position);
         }
 
+        /// <summary>A NavMesh point in the den, clear of other monsters if one can be found.</summary>
         Vector3 RandomPoint()
         {
+            Vector3? fallback = null;
             for (var attempt = 0; attempt < 10; attempt++)
             {
                 var offset = Random.insideUnitCircle * radius;
-                if (NavMesh.SamplePosition(transform.position + new Vector3(offset.x, 0f, offset.y), out var hit, 2f, NavMesh.AllAreas))
-                    return hit.position;
+                if (!NavMesh.SamplePosition(transform.position + new Vector3(offset.x, 0f, offset.y), out var hit, 2f, NavMesh.AllAreas))
+                    continue;
+                if (MonsterAI.IsFree(hit.position, prefab.PersonalSpace)) return hit.position;
+                fallback ??= hit.position;
             }
-            return transform.position;
+            return fallback ?? transform.position;
         }
 
         void OnDrawGizmosSelected()

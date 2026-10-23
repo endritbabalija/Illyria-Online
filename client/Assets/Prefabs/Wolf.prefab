@@ -79,7 +79,7 @@ NavMeshAgent:
   m_GameObject: {fileID: 8590141868355373527}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.45
+  m_Radius: 0.65
   m_Speed: 3
   m_Acceleration: 20
   avoidancePriority: 50
@@ -144,6 +144,8 @@ MonoBehaviour:
   combatant: {fileID: 8781212175700692946}
   visual: {fileID: 6631378639167726008}
   weapon: {fileID: 0}
+  offHandWeapon: {fileID: 0}
+  animatedAttacks: 0
   lungeDistance: 0
   attackDuration: 0.22
   hitPunch: 0.15
@@ -170,6 +172,7 @@ MonoBehaviour:
   packAssistRadius: 7
   wanderPauseMin: 2
   wanderPauseMax: 6
+  personalSpace: 1.8
 --- !u!114 &107967277404095999
 MonoBehaviour:
   m_ObjectHideFlags: 0

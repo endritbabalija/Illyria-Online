@@ -28,8 +28,11 @@ namespace Wuxia.Monsters
         [SerializeField] float packAssistRadius = 7f;
         [SerializeField] float wanderPauseMin = 2f;
         [SerializeField] float wanderPauseMax = 6f;
+        [Tooltip("Wander targets and respawn points keep at least this far (centre to centre) from where other monsters stand or are heading, so packmates don't stop inside each other.")]
+        [SerializeField] float personalSpace = 1.8f;
 
         public Combatant Combatant { get; private set; }
+        public float PersonalSpace => personalSpace;
         public MonsterData Data => data;
         public float RespawnDelay => data.respawnDelay;
 
@@ -122,9 +125,41 @@ namespace Wuxia.Monsters
 
             if (Time.time < nextWanderTime || agent.pathPending || agent.remainingDistance > agent.stoppingDistance) return;
             nextWanderTime = Time.time + UnityEngine.Random.Range(wanderPauseMin, wanderPauseMax);
-            var offset = UnityEngine.Random.insideUnitCircle * data.wanderRadius;
-            if (NavMesh.SamplePosition(home + new Vector3(offset.x, 0f, offset.y), out var hit, 2f, NavMesh.AllAreas))
-                agent.SetDestination(hit.position);
+            // A few tries for a free spot; if the pack crowds every one, stay put until the next pause.
+            for (var attempt = 0; attempt < 4; attempt++)
+            {
+                var offset = UnityEngine.Random.insideUnitCircle * data.wanderRadius;
+                if (NavMesh.SamplePosition(home + new Vector3(offset.x, 0f, offset.y), out var hit, 2f, NavMesh.AllAreas)
+                    && IsFree(hit.position, personalSpace, this))
+                {
+                    agent.SetDestination(hit.position);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// True if no other living monster stands, or is walking to, within <paramref name="space"/>
+        /// of <paramref name="point"/> on the ground plane.
+        /// </summary>
+        public static bool IsFree(Vector3 point, float space, MonsterAI except = null)
+        {
+            var spaceSqr = space * space;
+            foreach (var other in alive)
+            {
+                if (other == except) continue;
+                if (FlatSqrDistance(other.transform.position, point) < spaceSqr) return false;
+                var heading = other.agent.hasPath || other.agent.pathPending;
+                if (heading && FlatSqrDistance(other.agent.destination, point) < spaceSqr) return false;
+            }
+            return true;
+        }
+
+        static float FlatSqrDistance(Vector3 a, Vector3 b)
+        {
+            var dx = a.x - b.x;
+            var dz = a.z - b.z;
+            return dx * dx + dz * dz;
         }
 
         void UpdateChase()
