@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "offline": {
+    "note": "There are no player levels until M7: every character counts as this level for item level requirements.",
+    "playerLevel": 1
+  },
+  "inventory": {
+    "capacity": 30,
+    "quickSlots": ["hp_potion", "spirit_potion"]
+  },
+  "loot": {
+    "autoLootRadius": 3,
+    "groundTime": 60,
+    "pickupDelay": 0.4
+  },
+  "statCaps": {
+    "dodge": 0.5,
+    "resist": 0.75
+  },
+  "rarities": [
+    { "id": "common", "name": "Common", "color": "#FFFFFF", "bonusLines": 0, "dropWeight": 70, "sellMultiplier": 1 },
+    { "id": "fine", "name": "Fine", "color": "#4CD964", "bonusLines": 1, "dropWeight": 24, "sellMultiplier": 1.5 },
+    { "id": "rare", "name": "Rare", "color": "#3B82F6", "bonusLines": 2, "dropWeight": 6, "sellMultiplier": 2.5 }
+  ],
+  "bonusLines": [
+    { "stat": "damage", "min": 1, "max": 3, "weight": 1, "slots": ["weapon", "ring"] },
+    { "stat": "defense", "min": 1, "max": 3, "weight": 1, "slots": ["helm", "armor", "boots"] },
+    { "stat": "hp", "min": 10, "max": 30, "weight": 1, "slots": ["helm", "armor", "boots", "amulet"] },
+    { "stat": "spirit", "min": 5, "max": 15, "weight": 1, "slots": ["helm", "ring", "amulet"] },
+    { "stat": "accuracy", "min": 0.01, "max": 0.03, "weight": 1, "slots": ["weapon", "helm", "ring"] },
+    { "stat": "dodge", "min": 0.01, "max": 0.03, "weight": 1, "slots": ["armor", "boots", "amulet"] },
+    { "stat": "skillDamage", "min": 0.02, "max": 0.06, "weight": 1, "slots": ["weapon", "amulet"] },
+    { "stat": "skillDefense", "min": 1, "max": 3, "weight": 1, "slots": ["helm", "armor"] },
+    { "stat": "poisonResist", "min": 0.03, "max": 0.08, "weight": 1, "slots": ["armor", "boots", "ring", "amulet"] },
+    { "stat": "paralysisResist", "min": 0.03, "max": 0.08, "weight": 1, "slots": ["helm", "boots", "ring", "amulet"] }
+  ],
+  "items": [
+    {
+      "id": "worn_sword", "name": "Worn Sword", "slot": "weapon", "weaponType": "sword", "characters": ["kreshnik"],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 40, "sellPrice": 5, "modelKey": "WornSword",
+      "stats": { "minDamage": 14, "maxDamage": 22 }
+    },
+    {
+      "id": "worn_bow", "name": "Worn Bow", "slot": "weapon", "weaponType": "bow", "characters": ["kreshnik"],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 40, "sellPrice": 5, "modelKey": "WornBow",
+      "stats": { "minDamage": 11, "maxDamage": 17 }
+    },
+    {
+      "id": "worn_sicas", "name": "Worn Sicas", "slot": "weapon", "weaponType": "sicas", "characters": ["zanas_chosen"],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 40, "sellPrice": 5, "modelKey": "WornSicas",
+      "stats": { "minDamage": 9, "maxDamage": 14 }
+    },
+    {
+      "id": "worn_staff", "name": "Worn Staff", "slot": "weapon", "weaponType": "staff", "characters": ["zanas_chosen"],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 40, "sellPrice": 5, "modelKey": "WornStaff",
+      "stats": { "minDamage": 17, "maxDamage": 26 }
+    },
+    {
+      "id": "iron_sword", "name": "Iron Sword", "slot": "weapon", "weaponType": "sword", "characters": ["kreshnik"],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 0, "sellPrice": 60, "modelKey": "IronSword",
+      "stats": { "minDamage": 21, "maxDamage": 31, "accuracy": 0.02 }
+    },
+    {
+      "id": "cloth_hood", "name": "Cloth Hood", "slot": "helm", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 60, "sellPrice": 12, "modelKey": "ClothHood",
+      "stats": { "defense": 1, "hp": 10 }
+    },
+    {
+      "id": "padded_vest", "name": "Padded Vest", "slot": "armor", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 120, "sellPrice": 24, "modelKey": "PaddedVest",
+      "stats": { "defense": 3, "hp": 25 }
+    },
+    {
+      "id": "leather_boots", "name": "Leather Boots", "slot": "boots", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 70, "sellPrice": 14, "modelKey": "LeatherBoots",
+      "stats": { "defense": 1, "dodge": 0.01 }
+    },
+    {
+      "id": "copper_ring", "name": "Copper Ring", "slot": "ring", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 90, "sellPrice": 18, "modelKey": "CopperRing",
+      "stats": { "accuracy": 0.02 }
+    },
+    {
+      "id": "shepherds_amulet", "name": "Shepherd's Amulet", "slot": "amulet", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 1, "buyPrice": 100, "sellPrice": 20, "modelKey": "ShepherdsAmulet",
+      "stats": { "spirit": 15, "poisonResist": 0.05 }
+    },
+    {
+      "id": "wolf_fang_amulet", "name": "Wolf Fang Amulet", "slot": "amulet", "weaponType": "", "characters": [],
+      "levelRequired": 5, "stackSize": 1, "buyPrice": 0, "sellPrice": 45, "modelKey": "WolfFangAmulet",
+      "stats": { "hp": 20, "dodge": 0.02, "skillDamage": 0.03 }
+    },
+    {
+      "id": "hp_potion", "name": "Healing Draught", "slot": "", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 50, "buyPrice": 10, "sellPrice": 2, "modelKey": "HpPotion",
+      "use": { "hp": 80, "spirit": 0, "cooldownGroup": "hp_potion", "cooldown": 8 }
+    },
+    {
+      "id": "spirit_potion", "name": "Zana's Dew", "slot": "", "weaponType": "", "characters": [],
+      "levelRequired": 1, "stackSize": 50, "buyPrice": 15, "sellPrice": 3, "modelKey": "SpiritPotion",
+      "use": { "hp": 0, "spirit": 40, "cooldownGroup": "spirit_potion", "cooldown": 10 }
+    }
+  ],
+  "starterKits": [
+    {
+      "character": "kreshnik",
+      "gold": 100,
+      "equip": ["worn_sword"],
+      "bag": [
+        { "item": "worn_bow", "count": 1 },
+        { "item": "hp_potion", "count": 5 },
+        { "item": "spirit_potion", "count": 3 }
+      ]
+    },
+    {
+      "character": "zanas_chosen",
+      "gold": 100,
+      "equip": ["worn_sicas"],
+      "bag": [
+        { "item": "worn_staff", "count": 1 },
+        { "item": "hp_potion", "count": 5 },
+        { "item": "spirit_potion", "count": 3 }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "id": "han_keeper",
+      "name": "Han Keeper",
+      "items": ["hp_potion", "spirit_potion", "cloth_hood", "padded_vest", "leather_boots", "copper_ring", "shepherds_amulet", "worn_sword", "worn_bow", "worn_sicas", "worn_staff"]
+    }
+  ],
+  "lootTables": [
+    {
+      "id": "wolf",
+      "monster": "wolf",
+      "goldChance": 0.9,
+      "goldMin": 4,
+      "goldMax": 11,
+      "drops": [
+        { "item": "iron_sword", "chance": 0.02, "min": 1, "max": 1 },
+        { "item": "hp_potion", "chance": 0.25, "min": 1, "max": 2 },
+        { "item": "spirit_potion", "chance": 0.12, "min": 1, "max": 1 },
+        { "item": "cloth_hood", "chance": 0.04, "min": 1, "max": 1 },
+        { "item": "padded_vest", "chance": 0.03, "min": 1, "max": 1 },
+        { "item": "leather_boots", "chance": 0.04, "min": 1, "max": 1 },
+        { "item": "copper_ring", "chance": 0.03, "min": 1, "max": 1 },
+        { "item": "shepherds_amulet", "chance": 0.03, "min": 1, "max": 1 },
+        { "item": "wolf_fang_amulet", "chance": 0.02, "min": 1, "max": 1 }
+      ]
+    }
+  ]
+}

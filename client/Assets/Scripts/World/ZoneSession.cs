@@ -16,6 +16,10 @@ namespace Wuxia.World
 
         [Tooltip("combat.json from the com.wuxia.gamedata package (shared with the server).")]
         [SerializeField] TextAsset combatData;
+        [Tooltip("skills.json from the com.wuxia.gamedata package (shared with the server).")]
+        [SerializeField] TextAsset skillsData;
+        [Tooltip("items.json from the com.wuxia.gamedata package (shared with the server).")]
+        [SerializeField] TextAsset itemsData;
         [SerializeField] string zoneName = "Oak Valley";
         [Tooltip("Where the player revives after dying: in front of the zone's Han.")]
         [SerializeField] Transform respawnPoint;
@@ -28,11 +32,13 @@ namespace Wuxia.World
         public int Kills { get; private set; }
 
         public event Action<int> KillsChanged;
+        /// <summary>A monster the player killed just died (before <see cref="KillsChanged"/>); roll its loot here.</summary>
+        public event Action<Combatant> MonsterSlain;
 
         void Awake()
         {
             Instance = this;
-            GameData.Load(combatData);
+            GameData.Load(combatData, skillsData, itemsData);
             // Android defaults to 30 fps; target lock combat reads much better at 60.
             Application.targetFrameRate = targetFrameRate;
         }
@@ -46,6 +52,7 @@ namespace Wuxia.World
         {
             Kills++;
             Debug.Log($"[Combat] {monster.DisplayName} slain in {zoneName} ({Kills} total)");
+            MonsterSlain?.Invoke(monster);
             KillsChanged?.Invoke(Kills);
         }
     }
