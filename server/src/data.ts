@@ -192,6 +192,8 @@ interface ZoneData {
     /** No combat at all (the town). */
     safe: boolean;
     channelCap: number;
+    /** The walkable grid exported from the zone's NavMesh (path under shared/gamedata); none = no ground checks. */
+    navGrid?: string;
     respawn: { position: number[]; yaw: number };
     shopkeepers: ShopkeeperData[];
     ledges: LedgeData[];
@@ -219,6 +221,10 @@ interface ZonesData {
         maxSlope: number;
         stepUp: number;
         ledgeClimbHeight: number;
+        /** A move may end this far from a walkable cell (the NavMesh keeps its agent radius clear of walls). */
+        gridSlack: number;
+        /** How far a player may stand above or below the grid's ground height (except while falling). */
+        heightTolerance: number;
     };
     monsterAi: {
         corpseTime: number;
@@ -230,6 +236,10 @@ interface ZonesData {
         chaseWindup: number;
         stoppingFraction: number;
         homeArriveDistance: number;
+        /** Seconds between path recalculations while following a moving target. */
+        repathInterval: number;
+        /** Most grid cells one path search may visit; beyond that the target counts as unreachable. */
+        pathMaxNodes: number;
     };
     playerRules: {
         castQueueTimeout: number;
@@ -249,9 +259,10 @@ interface GameData {
     skills: SkillData;
     items: ItemsData;
     zones: ZonesData;
+    /** Walkable grids by zone id, for zones that have one. */
+    navGrids: { [zoneId: string]: NavGrid };
 }
 
-var GAMEDATA_FILES = ['combat.json', 'skills.json', 'items.json', 'zones.json'];
 
 function findBy<T extends { id: string }>(list: T[], id: string): T | null {
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
@@ -316,16 +327,21 @@ var ALL_STATS = ['damage', 'defense', 'hp', 'spirit', 'accuracy', 'dodge', 'skil
 function isWholeStat(stat: string): boolean { return indexOf(WHOLE_STATS, stat) >= 0; }
 
 /**
- * Parses the four JSON files, fills defaults the way the client's FromJson does, and checks that
- * every cross-reference resolves. Throws with every problem listed.
+ * Parses the four JSON files and each zone's walkable grid (`read` takes a path relative to
+ * shared/gamedata), fills defaults the way the client's FromJson does, and checks that every
+ * cross-reference resolves. Throws with every problem listed.
  */
-function parseGameData(texts: { [file: string]: string }): GameData {
+function parseGameData(read: (path: string) => string): GameData {
     var data: GameData = {
-        combat: JSON.parse(texts['combat.json']),
-        skills: JSON.parse(texts['skills.json']),
-        items: JSON.parse(texts['items.json']),
-        zones: JSON.parse(texts['zones.json']),
+        combat: JSON.parse(read('combat.json')),
+        skills: JSON.parse(read('skills.json')),
+        items: JSON.parse(read('items.json')),
+        zones: JSON.parse(read('zones.json')),
+        navGrids: {},
     };
+    data.zones.zones.forEach(function (z) {
+        if (z.navGrid) data.navGrids[z.id] = new NavGrid(JSON.parse(read(z.navGrid)) as NavGridFile);
+    });
     var items = data.items;
     if (!items.offline) items.offline = { playerLevel: 1 };
     if (!items.statCaps) items.statCaps = { dodge: 1, resist: 1 };
@@ -397,6 +413,16 @@ function validateGameData(data: GameData): string[] {
         z.packs.forEach(function (p) { exists(combat.monsters, p.monster, 'monster', 'zone ' + z.id + ' pack ' + p.id); });
         z.shopkeepers.forEach(function (s) { exists(items.shops, s.shop, 'shop', 'zone ' + z.id + ' shopkeeper ' + s.id); });
         need(!z.safe || z.packs.length === 0, 'zone ' + z.id + ' is safe but has monster packs');
+        var grid = data.navGrids[z.id];
+        if (!grid) return;
+        need(grid.zone === z.id, 'zone ' + z.id + ': its navGrid is for ' + grid.zone);
+        need(grid.nearestWalkable(vec3From(z.respawn.position), 1) !== null, 'zone ' + z.id + ': the respawn point is not on walkable ground');
+        z.packs.forEach(function (p) {
+            need(grid.nearestWalkable(vec3From(p.position), p.radius) !== null, 'zone ' + z.id + ' pack ' + p.id + ': no walkable ground in its circle');
+        });
+        z.shopkeepers.forEach(function (s) {
+            need(grid.nearestWalkable(vec3From(s.position), data.zones.playerRules.shopInteractRange) !== null, 'zone ' + z.id + ' shopkeeper ' + s.id + ': no walkable ground in reach');
+        });
     });
     return problems;
 }

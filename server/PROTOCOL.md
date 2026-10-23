@@ -82,11 +82,11 @@ Actions (`a`):
 | 103 | Self | one | Your private state (below), after it changes |
 | 104 | Drops | one | `{add: [drop], remove: [{id, why}]}`; `why` = `picked`, `expired`, `gone` |
 | 105 | Result | one | `{a, rid?, ok, error?, text?, …}`; `text` is the offline client's wording |
-| 106 | Correction | one | `{x, y, z, why}`: put the player here (`tooFast`, `tooSteep`, `ledge`, `disabled`, `revive`) |
+| 106 | Correction | one | `{x, y, z, why}`: put the player here (`tooFast`, `tooSteep`, `ledge`, `blocked` (off walkable ground: walls, the river, rocks), `height` (too far above or below the ground), `disabled`, `revive`) |
 | 107 | Notice | one | `{code, text?}`: `target` `{id}` (target changed or dropped), `skillPoint`, `bagFull` |
 
 - `player` = `{id (user id), name, character, weapon (item def), x, y, z, yaw, hp, maxHp, sp, maxSp, dead, st: [{id, left}]}`
-- `monster` = `{id, monster (combat.json id), pack, x, y, z, yaw, hp, maxHp, state (idle/chase/return/dead), target, st}`. Monsters move in straight lines on the ground plane; `y` is their pack's ground height (or the chased player's), so place them on the NavMesh/terrain locally.
+- `monster` = `{id, monster (combat.json id), pack, x, y, z, yaw, hp, maxHp, state (idle/chase/return/dead), target, st}`. Monsters walk on the zone's walkable grid (straight where they can, round obstacles where they can't) and `y` is the grid's ground height, so they line up with the NavMesh to within a few centimetres; snap them onto it locally if needed.
 - `drop` = `{id, x, y, z, gold, item: {id, def, rarity, count, lines} | null, left}`. Loot belongs to the player credited with the kill (most damage dealt; the killing blow breaks ties) and only they see it; it's picked up automatically within `loot.autoLootRadius` after `loot.pickupDelay`.
 - `self` = `{characterId, name, gold, bag, equipment, quickSlots, stats, skills: {books, points, meterKills}, kills, cooldowns, potionCooldowns}`
 
@@ -116,9 +116,14 @@ round-half-to-even, so a predicted number matches the server's.
 Server-only additions, all in `zones.json`:
 
 - `server.rangeTolerance` (0.75 m): extra reach on attacks and single-target forms, for positions a tick apart.
-- `movement`: the move checks above.
+- `movement`: the move checks above, including `gridSlack` (a move may end this close to walkable ground, since the NavMesh keeps its agent radius clear of walls) and `heightTolerance` (how far from the ground's height a player may stand, except while coming down).
 - `monsterAi`: the values `MonsterAI`/`MonsterSpawner` keep as serialized fields (corpse time, pack assist radius, wander pauses, personal space, chase wind-up), plus a body radius so a pack spreads around a player.
+- `monsterAi.repathInterval`, `monsterAi.pathMaxNodes`: how often a chasing monster re-plans its path, and how far one search may look before the target counts as unreachable (the monster then gives up and goes home).
 - `playerRules`: cast queue timeout, weapon draw time after a swap, shop ranges, loot scatter.
 
-Not checked by the server yet: walls and the river (it has no collision geometry; moves are
-checked for speed, slope and ledges only) and whether a ledge top is clear (the client's raycast).
+**Walkable ground.** A zone with a `navGrid` in `zones.json` (Oak Valley) has its NavMesh, as
+exported from Unity, on a 1 m grid of ground heights (`shared/gamedata/navgrid/<zone>.json`). Moves
+must end on or next to walkable ground at its height, a dash stops at the first wall, and monsters
+path round trunks, rocks, walls and the river (over the bridge). The town has no grid yet, so only
+speed, slope and ledges are checked there. Whether a ledge top is clear isn't checked; the ledges
+listed in `zones.json` are all clear.

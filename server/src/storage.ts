@@ -14,9 +14,7 @@ var gameDataCache: GameData | null = null;
 
 function loadGameData(nk: nkruntime.Nakama): GameData {
     if (gameDataCache) return gameDataCache;
-    var texts: { [file: string]: string } = {};
-    GAMEDATA_FILES.forEach(function (file) { texts[file] = nk.fileRead('gamedata/' + file); });
-    gameDataCache = parseGameData(texts);
+    gameDataCache = parseGameData(function (path) { return nk.fileRead('gamedata/' + path); });
     return gameDataCache;
 }
 

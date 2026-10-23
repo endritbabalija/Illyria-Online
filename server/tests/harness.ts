@@ -41,11 +41,16 @@ function testData(): GameData {
     if (!testDataCache) {
         var fs = require('fs'), path = require('path');
         var dir = path.join(__dirname, '..', '..', 'shared', 'gamedata');
-        var texts: { [file: string]: string } = {};
-        GAMEDATA_FILES.forEach(function (file) { texts[file] = fs.readFileSync(path.join(dir, file), 'utf8'); });
-        testDataCache = parseGameData(texts);
+        testDataCache = parseGameData(function (file) { return fs.readFileSync(path.join(dir, file), 'utf8'); });
     }
-    return deepCopy(testDataCache as GameData);
+    // The grids are read-only and large, so copies share them.
+    var cached = testDataCache as GameData;
+    var grids = cached.navGrids;
+    cached.navGrids = {};
+    var copy = deepCopy(cached);
+    cached.navGrids = grids;
+    copy.navGrids = grids;
+    return copy;
 }
 
 /** An RNG that returns the given doubles from next() and the given values from int(), in order. */

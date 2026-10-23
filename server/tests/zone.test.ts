@@ -171,7 +171,8 @@ test('zone: monsters bite back, players die, revive at the Han and the pack goes
     messages = messages.concat(drain(sim));
     ok(eventsOf(messages, 'hit').some(function (h) { return h.dst === 'alice' && !h.miss; }));
     eq(eventsOf(messages, 'die').filter(function (d) { return d.id === 'alice'; }).length, 1);
-    ok(pack.some(function (m) { return m.state === 'return'; }), 'with their target dead the wolves head home');
+    sim.step(TICK);
+    ok(pack.every(function (m) { return m.state !== 'chase'; }), 'with their target dead the wolves stop chasing and head home');
 
     run(sim, sim.data.combat.player.respawnDelay + TICK);
     ok(!p.dead);

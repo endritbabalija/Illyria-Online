@@ -15,7 +15,9 @@
     "maxGapSeconds": 0.5,
     "maxSlope": 1.2,
     "stepUp": 0.6,
-    "ledgeClimbHeight": 1.0
+    "ledgeClimbHeight": 1.0,
+    "gridSlack": 1.0,
+    "heightTolerance": 1.0
   },
   "monsterAi": {
     "corpseTime": 2.5,
@@ -26,7 +28,9 @@
     "bodyRadius": 0.65,
     "chaseWindup": 0.4,
     "stoppingFraction": 0.8,
-    "homeArriveDistance": 0.2
+    "homeArriveDistance": 0.2,
+    "repathInterval": 0.5,
+    "pathMaxNodes": 4000
   },
   "playerRules": {
     "castQueueTimeout": 3,
@@ -55,6 +59,7 @@
       "kind": "field",
       "safe": false,
       "channelCap": 50,
+      "navGrid": "navgrid/oak_valley.json",
       "respawn": { "position": [-16, 0, -178], "yaw": 0 },
       "shopkeepers": [
         { "id": "HanKeeper", "shop": "han_keeper", "position": [-19.2, 0, -186.6] }

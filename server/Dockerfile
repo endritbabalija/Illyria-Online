@@ -13,4 +13,5 @@ RUN npx tsc
 FROM heroiclabs/nakama:3.41.0
 COPY --from=node-builder /backend/build/*.js /nakama/data/modules/build/
 COPY --from=gamedata *.json /nakama/data/modules/gamedata/
+COPY --from=gamedata navgrid/*.json /nakama/data/modules/gamedata/navgrid/
 COPY local.yml /nakama/data/

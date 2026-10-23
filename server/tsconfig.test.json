@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "files": [
     "./src/util.ts",
+    "./src/navgrid.ts",
     "./src/data.ts",
     "./src/combat.ts",
     "./src/items.ts",
@@ -16,6 +17,7 @@
     "./tests/rules.test.ts",
     "./tests/items.test.ts",
     "./tests/zone.test.ts",
+    "./tests/navgrid.test.ts",
     "./tests/run.ts"
   ],
   "compilerOptions": {

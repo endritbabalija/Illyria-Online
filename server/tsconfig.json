@@ -1,6 +1,7 @@
 {
   "files": [
     "./src/util.ts",
+    "./src/navgrid.ts",
     "./src/data.ts",
     "./src/combat.ts",
     "./src/items.ts",

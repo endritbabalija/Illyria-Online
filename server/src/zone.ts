@@ -65,6 +65,10 @@ interface SimMonster {
     state: MonsterState;
     target: string | null;
     dest: Vec3 | null;
+    /** Waypoints around obstacles towards `pathFor` (grid zones only), recalculated now and then. */
+    path: Vec2[] | null;
+    pathFor: Vec2 | null;
+    pathAt: number;
     nextWanderAt: number;
     nextAttackAt: number;
     despawnAt: number;
@@ -104,6 +108,8 @@ interface ZoneSimOptions {
 class ZoneSim {
     data: GameData;
     zone: ZoneData;
+    /** The zone's walkable ground, if it has one exported (the town doesn't yet). */
+    grid: NavGrid | null;
     rng: Rng;
     factory: ItemFactory;
     log: (message: string) => void;
@@ -119,6 +125,7 @@ class ZoneSim {
     constructor(data: GameData, zoneId: string, options: ZoneSimOptions) {
         this.data = data;
         this.zone = getZone(data, zoneId);
+        this.grid = data.navGrids[zoneId] || null;
         this.rng = options.rng || mathRng();
         this.factory = new ItemFactory(data, options.nextItemId);
         this.log = options.log || function () { };
@@ -263,6 +270,16 @@ class ZoneSim {
             if (ledge === p.onLedge) continue;
             var bottom = ledge.centre[1] - ledge.size[1] * 0.5;
             if (overLedge(ledge, to, 0) && to.y > bottom + rules.ledgeClimbHeight) return 'ledge';
+        }
+        // Walls, the river and anything else off the NavMesh: only ground the zone's grid calls
+        // walkable. A ledge top (reached by leaping) is above the grid, so standing on one is exempt.
+        var grid = this.grid;
+        if (grid && !(p.onLedge && overLedge(p.onLedge, to, 0.3))) {
+            var ground = grid.groundNear(to, rules.gridSlack);
+            if (ground === null) return 'blocked';
+            if (to.y < ground - rules.heightTolerance) return 'height';
+            // Above the ground only while coming down (stepping off a ledge).
+            if (to.y > ground + rules.heightTolerance && to.y > from.y + 0.05) return 'height';
         }
         return null;
     }
@@ -444,6 +461,12 @@ class ZoneSim {
             duration = rules.leapDuration;
         } else {
             to = vec3(p.pos.x + aim.x * rules.dashDistance, p.pos.y, p.pos.z + aim.z * rules.dashDistance);
+            // A dash stops at the first wall in its way.
+            if (this.grid && !p.onLedge) {
+                var stop = this.grid.walkableUntil(p.pos, to);
+                var ground = this.grid.groundNear(stop, 1);
+                to = vec3(stop.x, ground !== null ? ground : p.pos.y, stop.z);
+            }
             duration = rules.dashDuration;
         }
 
@@ -700,6 +723,9 @@ class ZoneSim {
                     state: 'idle',
                     target: null,
                     dest: null,
+                    path: null,
+                    pathFor: null,
+                    pathAt: 0,
                     nextWanderAt: 0,
                     nextAttackAt: 0,
                     despawnAt: 0,
@@ -717,7 +743,9 @@ class ZoneSim {
 
     /** (Re)spawns at a free spot in its pack's circle: full HP, idle. */
     private placeMonster(m: SimMonster): void {
-        var spot = this.freeSpot(vec3From(m.pack.position), m.pack.radius, 10, m) || vec3From(m.pack.position);
+        var centre = vec3From(m.pack.position);
+        var spot = this.freeSpot(centre, m.pack.radius, 10, m, true)
+            || (this.grid && this.grid.nearestWalkable(centre, m.pack.radius)) || centre;
         m.home = spot;
         m.pos = { x: spot.x, y: spot.y, z: spot.z };
         m.yaw = this.rng.next() * 360;
@@ -726,22 +754,31 @@ class ZoneSim {
         m.state = 'idle';
         m.target = null;
         m.dest = null;
+        m.path = null;
         m.despawned = false;
         m.damageBy = {};
         m.lastAttacker = null;
         m.nextWanderAt = this.now + this.rng.next() * this.data.zones.monsterAi.wanderPauseMax;
     }
 
-    /** A random point within `radius` of `centre` that no other monster stands on or walks to. */
-    private freeSpot(centre: Vec3, radius: number, attempts: number, except: SimMonster): Vec3 | null {
-        var fallback: Vec3 | null = null;
+    /**
+     * A random walkable point within `radius` of `centre`, on the ground, that no other monster
+     * stands on or walks to; failing that (spawning only, `fallback`), any walkable one found.
+     */
+    private freeSpot(centre: Vec3, radius: number, attempts: number, except: SimMonster, fallback?: boolean): Vec3 | null {
+        var spare: Vec3 | null = null;
         for (var i = 0; i < attempts; i++) {
             var angle = this.rng.next() * Math.PI * 2, r = Math.sqrt(this.rng.next()) * radius;
             var point = vec3(centre.x + Math.cos(angle) * r, centre.y, centre.z + Math.sin(angle) * r);
+            if (this.grid) {
+                var ground = this.grid.heightAt(point);
+                if (ground === null) continue;
+                point.y = ground;
+            }
             if (this.isFree(point, this.data.zones.monsterAi.personalSpace, except)) return point;
-            if (!fallback) fallback = point;
+            if (!spare) spare = point;
         }
-        return attempts >= 10 ? fallback : null;
+        return fallback ? spare : null;
     }
 
     private isFree(point: Vec3, space: number, except: SimMonster): boolean {
@@ -782,15 +819,11 @@ class ZoneSim {
                 var victim = this.nearestPlayer(m.pos, m.data.aggroRange);
                 if (victim) { this.startChase(m, victim.id); break; }
                 if (m.dest) {
-                    if (this.moveToward(m, m.dest, m.data.wanderSpeed, dt, 0)) m.dest = null;
+                    if (this.moveToward(m, m.dest, m.data.wanderSpeed, dt, 0) !== 'moving') m.dest = null;
                 } else if (this.now >= m.nextWanderAt) {
                     m.nextWanderAt = this.now + ai.wanderPauseMin + this.rng.next() * (ai.wanderPauseMax - ai.wanderPauseMin);
                     // A few tries for a free spot; if the pack crowds every one, stay put until the next pause.
-                    for (var attempt = 0; attempt < 4; attempt++) {
-                        var angle = this.rng.next() * Math.PI * 2, r = Math.sqrt(this.rng.next()) * m.data.wanderRadius;
-                        var spot = vec3(m.home.x + Math.cos(angle) * r, m.home.y, m.home.z + Math.sin(angle) * r);
-                        if (this.isFree(spot, ai.personalSpace, m)) { m.dest = spot; break; }
-                    }
+                    m.dest = this.freeSpot(m.home, m.data.wanderRadius, 4, m);
                 }
                 break;
             }
@@ -800,8 +833,8 @@ class ZoneSim {
                     this.startReturn(m);
                     break;
                 }
-                // Walk at the height of a player on the ground; one on a ledge stays above, out of reach.
-                if (!target.onLedge) m.pos.y = target.pos.y;
+                // Without a grid, walk at the height of a player on the ground; one on a ledge stays above, out of reach.
+                if (!this.grid && !target.onLedge) m.pos.y = target.pos.y;
                 var a = m.data.attack;
                 var inReach = flatDistance(m.pos, target.pos) <= a.range && Math.abs(target.pos.y - m.pos.y) <= a.reachHeight;
                 if (inReach) {
@@ -811,14 +844,18 @@ class ZoneSim {
                         m.nextAttackAt = this.now + a.interval;
                         this.damagePlayer(target, m.id, rollBasicAttack(a, target.stats.defense, target.stats.dodge, this.rng));
                     }
-                } else {
-                    this.moveToward(m, target.pos, m.data.chaseSpeed, dt, a.range * ai.stoppingFraction);
+                } else if (this.moveToward(m, target.pos, m.data.chaseSpeed, dt, a.range * ai.stoppingFraction) === 'blocked') {
+                    // No way round to them: give up.
+                    this.startReturn(m);
                 }
                 break;
             }
-            case 'return':
-                if (this.moveToward(m, m.home, m.data.chaseSpeed, dt, 0) || flatDistance(m.pos, m.home) <= ai.homeArriveDistance) {
-                    m.pos.y = m.home.y;
+            case 'return': {
+                var home = this.moveToward(m, m.home, m.data.chaseSpeed, dt, 0);
+                if (home !== 'moving' || flatDistance(m.pos, m.home) <= ai.homeArriveDistance) {
+                    // Arrived, or (never expected) no way home: either way, back at home.
+                    m.pos = { x: m.home.x, y: m.home.y, z: m.home.z };
+                    m.path = null;
                     m.hp = m.data.maxHp;
                     m.statuses.clear();
                     m.damageBy = {};
@@ -826,19 +863,53 @@ class ZoneSim {
                     this.enterIdle(m);
                 }
                 break;
+            }
         }
     }
 
-    /** Moves on the ground plane; true once within `stopAt` of the point. */
-    private moveToward(m: SimMonster, point: Vec3, speed: number, dt: number, stopAt: number): boolean {
-        var distance = flatDistance(m.pos, point);
-        var dir = flatDirection(m.pos, point);
-        if (!dir || distance <= stopAt + 1e-3) return true;
-        var stepLength = Math.min(speed * dt, distance - stopAt);
-        m.pos.x += dir.x * stepLength;
-        m.pos.z += dir.z * stepLength;
-        m.yaw = directionToYaw(dir);
-        return distance - stepLength <= stopAt + 1e-3;
+    /**
+     * Walks towards a point: straight where the ground allows, else along a grid path around
+     * obstacles (recalculated every repathInterval while the point moves). 'arrived' once within
+     * `stopAt`, 'blocked' when there's no way there.
+     */
+    private moveToward(m: SimMonster, point: Vec3, speed: number, dt: number, stopAt: number): 'arrived' | 'moving' | 'blocked' {
+        if (flatDistance(m.pos, point) <= stopAt + 1e-3) { m.path = null; return 'arrived'; }
+        var waypoint: Vec2 = point;
+        var final = true;
+        var grid = this.grid;
+        if (grid && !grid.lineWalkable(m.pos, point)) {
+            var ai = this.data.zones.monsterAi;
+            var moved = !m.pathFor || flatDistance(m.pathFor, point) > 1;
+            if (!m.path || (moved && this.now - m.pathAt >= ai.repathInterval)) {
+                m.path = grid.findPath(m.pos, point, ai.pathMaxNodes);
+                m.pathFor = { x: point.x, z: point.z };
+                m.pathAt = this.now;
+                if (!m.path) return 'blocked';
+            }
+            while (m.path.length > 1 && flatDistance(m.pos, m.path[0]) < 0.05) m.path.shift();
+            final = m.path.length === 1;
+            waypoint = final ? point : m.path[0];
+        } else m.path = null;
+
+        var stop = final ? stopAt : 0;
+        var distance = flatDistance(m.pos, waypoint);
+        var dir = flatDirection(m.pos, waypoint);
+        if (dir) {
+            var stepLength = Math.min(speed * dt, Math.max(0, distance - stop));
+            m.pos.x += dir.x * stepLength;
+            m.pos.z += dir.z * stepLength;
+            m.yaw = directionToYaw(dir);
+            if (!final && stepLength >= distance - 1e-3 && m.path) m.path.shift();
+        }
+        this.settle(m);
+        return final && flatDistance(m.pos, point) <= stopAt + 1e-3 ? 'arrived' : 'moving';
+    }
+
+    /** Puts a monster on the grid's ground where it stands. */
+    private settle(m: SimMonster): void {
+        if (!this.grid) return;
+        var ground = this.grid.groundNear(m.pos, 1.5);
+        if (ground !== null) m.pos.y = ground;
     }
 
     /** Stopped agents never push apart, so nudge overlapping monsters away from each other. */
@@ -855,10 +926,19 @@ class ZoneSim {
                 if (d >= minGap) continue;
                 var dir = flatDirection(b.pos, a.pos) || { x: 1, z: 0 };
                 var push = (minGap - d) * 0.5;
-                a.pos.x += dir.x * push; a.pos.z += dir.z * push;
-                b.pos.x -= dir.x * push; b.pos.z -= dir.z * push;
+                this.nudge(a, dir.x * push, dir.z * push);
+                this.nudge(b, -dir.x * push, -dir.z * push);
             }
         }
+    }
+
+    /** Shifts a monster on the ground plane unless that would put it off walkable ground. */
+    private nudge(m: SimMonster, dx: number, dz: number): void {
+        var to = { x: m.pos.x + dx, z: m.pos.z + dz };
+        if (this.grid && !this.grid.isWalkable(to)) return;
+        m.pos.x = to.x;
+        m.pos.z = to.z;
+        this.settle(m);
     }
 
     private nearestPlayer(from: Vec3, range: number): SimPlayer | null {
@@ -887,6 +967,7 @@ class ZoneSim {
         m.state = 'chase';
         m.target = playerId;
         m.dest = null;
+        m.path = null;
         // A short wind-up so a monster doesn't bite the instant it reaches you.
         m.nextAttackAt = Math.max(m.nextAttackAt, this.now + this.data.zones.monsterAi.chaseWindup);
     }
@@ -895,6 +976,7 @@ class ZoneSim {
         m.state = 'return';
         m.target = null;
         m.dest = null;
+        m.path = null;
     }
 
     private damageMonster(m: SimMonster, attackerId: string | null, result: AttackResult): void {
@@ -965,7 +1047,7 @@ class ZoneSim {
             var drop: SimDrop = {
                 id: 'd' + (this.nextDropId++),
                 owner: p.id,
-                pos: vec3(m.pos.x + Math.sin(angle) * r, m.pos.y, m.pos.z + Math.cos(angle) * r),
+                pos: this.dropSpot(m.pos, angle, r),
                 gold: drops[i].gold,
                 item: drops[i].item,
                 droppedAt: this.now,
@@ -977,6 +1059,14 @@ class ZoneSim {
         }
         this.send(Op.Drops, { add: added, remove: [] }, [p.id]);
         this.log('[Loot] ' + m.data.name + ' dropped ' + names.join(', '));
+    }
+
+    /** Where a drop lands: around the corpse, on walkable ground (the corpse's spot if that's all there is). */
+    private dropSpot(at: Vec3, angle: number, r: number): Vec3 {
+        var spot = vec3(at.x + Math.sin(angle) * r, at.y, at.z + Math.cos(angle) * r);
+        if (!this.grid) return spot;
+        var ground = this.grid.heightAt(spot);
+        return ground === null ? vec3(at.x, at.y, at.z) : vec3(spot.x, ground, spot.z);
     }
 
     private updateDrops(): void {
