@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24425737435269040b3b59fc91ae8af6, type: 3}
+  m_Name: MarshMist
+  m_EditorClassIdentifier: Wuxia::Wuxia.World.AtmosphereProfile
+  sunElevation: 7
+  sunAzimuth: 290
+  sunColor: {r: 1, g: 0.62, b: 0.35, a: 1}
+  sunIntensity: 1
+  shadowStrength: 0.6
+  ambientSky: {r: 0.4, g: 0.48, b: 0.46, a: 1}
+  ambientEquator: {r: 0.42, g: 0.44, b: 0.34, a: 1}
+  ambientGround: {r: 0.18, g: 0.18, b: 0.14, a: 1}
+  fogColor: {r: 0.55, g: 0.62, b: 0.55, a: 1}
+  fogStart: 12
+  fogEnd: 140
+  skyZenith: {r: 0.28, g: 0.3, b: 0.36, a: 1}
+  skyHorizon: {r: 0.78, g: 0.66, b: 0.52, a: 1}
+  sunGlow: {r: 1, g: 0.55, b: 0.28, a: 1}
+  cloudColor: {r: 0.5, g: 0.48, b: 0.48, a: 1}
+  cloudCover: 0.75
+  ridgeFar: {r: 0.52, g: 0.58, b: 0.55, a: 1}
+  ridgeNear: {r: 0.36, g: 0.4, b: 0.38, a: 1}
+  sunDisc: 0.4
+  volume: {fileID: 11400000, guid: aacbae99a02b22845a889a97745085ac, type: 2}
+  fadeTime: 5

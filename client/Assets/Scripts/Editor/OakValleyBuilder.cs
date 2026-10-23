@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using Wuxia.Monsters;
 using Wuxia.World;
 using Object = UnityEngine.Object;
@@ -306,7 +307,7 @@ namespace Wuxia.EditorTools
             BuildLedges(ctx, environment.Find("LeapLedges"));
             PlaceAnchors(ctx, environment, gameplay);
             BuildAreas(ctx, gameplay);
-            SetUpLighting(materials);
+            SetUpLighting(generated);
 
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
@@ -686,7 +687,9 @@ namespace Wuxia.EditorTools
                 m.enableInstancing = true;
                 if (emission.HasValue)
                 {
-                    m.EnableKeyword("_EMISSION");
+                    // The material's own keyword (EnableKeyword(string) didn't stick on a rebuild).
+                    var emissive = new LocalKeyword(m.shader, "_EMISSION");
+                    m.SetKeyword(emissive, true);
                     m.SetColor("_EmissionColor", emission.Value);
                     m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
                 }
@@ -1413,8 +1416,9 @@ namespace Wuxia.EditorTools
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = new Color(1f, 0.6f, 0.28f);
-            light.range = 11f;
-            light.intensity = 2.5f;
+            // The camp is at dusk (Atmosphere/Dusk): the fire carries the scene, as in the key art.
+            light.range = 15f;
+            light.intensity = 5f;
             light.shadows = LightShadows.None;
         }
 
@@ -1831,40 +1835,87 @@ namespace Wuxia.EditorTools
             Area("Road to Serpent Marsh", 12, 25, new Vector2(0f, 207f), new Vector2(40f, 14f), 2);
         }
 
-        /// <summary>Golden-hour light from the west, warm haze, a far plane that keeps the slopes in view.</summary>
-        static void SetUpLighting(Materials m)
+        const string AtmosphereRoot = ArtRoot + "/Atmosphere";
+
+        /// <summary>
+        /// Each area's mood, after its key art in docs/art/oak-valley/: golden afternoon at the Han and the
+        /// meadow, low gold in the oak forest, sunset over the upper valley, dusk at the bandit camp, overcast
+        /// twilight at the wolf den, misty dusk on the road north. The first one is the scene's start.
+        /// </summary>
+        static readonly (string profile, string[] areas)[] Moods =
+        {
+            ("Afternoon", new[] { "The Han", "Meadow", "Shepherd's Fold" }),
+            ("Forest", new[] { "Oak Forest", "Dried Spring" }),
+            ("Sunset", new[] { "Upper Valley" }),
+            ("Dusk", new[] { "Bandit Camp" }),
+            ("Overcast", new[] { "Wolf Den" }),
+            ("MarshMist", new[] { "Road to Serpent Marsh" }),
+        };
+
+        /// <summary>
+        /// Sun, sky (<c>Wuxia/Sky</c>), fog and post-processing. <c>Generated/Atmosphere</c> holds a
+        /// <see cref="ZoneAtmosphere"/> that eases between the <see cref="Moods"/> as the player changes area,
+        /// a base volume (tonemapping, bloom, vignette) and one grading volume per mood. The moods are assets in
+        /// <see cref="AtmosphereRoot"/> (<c>&lt;Mood&gt;.asset</c> and its <c>&lt;Mood&gt;_Post.asset</c>): tune them there.
+        /// </summary>
+        static void SetUpLighting(Transform generated)
         {
             var sun = GameObject.Find("Sun").GetComponent<Light>();
-            sun.transform.rotation = Quaternion.Euler(34f, 112f, 0f);
-            sun.color = new Color(1f, 0.87f, 0.68f);
-            sun.intensity = 1.35f;
             RenderSettings.sun = sun;
 
             var skyPath = $"{ArtRoot}/Materials/OakValleySky.mat";
+            var skyShader = Shader.Find("Wuxia/Sky");
             var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
             if (sky == null)
             {
-                sky = new Material(Shader.Find("Skybox/Procedural"));
+                sky = new Material(skyShader);
                 AssetDatabase.CreateAsset(sky, skyPath);
             }
-            sky.SetFloat("_SunSize", 0.05f);
-            sky.SetFloat("_AtmosphereThickness", 1.15f);
-            sky.SetColor("_SkyTint", new Color(0.62f, 0.55f, 0.5f));
-            sky.SetColor("_GroundColor", new Color(0.45f, 0.41f, 0.36f));
-            sky.SetFloat("_Exposure", 1.2f);
-            EditorUtility.SetDirty(sky);
+            else if (sky.shader != skyShader) sky.shader = skyShader;
             RenderSettings.skybox = sky;
-
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.60f, 0.62f, 0.68f);
-            RenderSettings.ambientEquatorColor = new Color(0.56f, 0.51f, 0.43f);
-            RenderSettings.ambientGroundColor = new Color(0.26f, 0.23f, 0.18f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = new Color(0.82f, 0.76f, 0.66f);
-            RenderSettings.fogStartDistance = 45f;
-            RenderSettings.fogEndDistance = 230f;
-            Camera.main.farClipPlane = 240f;
+
+            // Fog ends inside the far plane, so the far slopes melt into the sky instead of being cut off.
+            var camera = Camera.main;
+            camera.farClipPlane = 240f;
+            camera.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+
+            var root = new GameObject("Atmosphere").transform;
+            root.SetParent(generated, false);
+            AddVolume(root, "Base", LoadAtmosphere<VolumeProfile>("Base_Post"), 0f, 1f);
+            var areaMoods = new List<ZoneAtmosphere.AreaMood>();
+            AtmosphereProfile start = null;
+            foreach (var (name, areas) in Moods)
+            {
+                var profile = LoadAtmosphere<AtmosphereProfile>(name);
+                if (start == null) start = profile;
+                if (profile.volume != null) AddVolume(root, name, profile.volume, 1f, 0f);
+                foreach (var area in areas) areaMoods.Add(new ZoneAtmosphere.AreaMood { area = area, profile = profile });
+            }
+            var atmosphere = root.gameObject.AddComponent<ZoneAtmosphere>();
+            atmosphere.Configure(start, areaMoods, sun, sky, camera);
+            atmosphere.ApplyInstant(start);
+            EditorUtility.SetDirty(sky);
+        }
+
+        static T LoadAtmosphere<T>(string name) where T : Object
+        {
+            var path = $"{AtmosphereRoot}/{name}.asset";
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null) throw new InvalidOperationException($"Missing atmosphere asset {path}");
+            return asset;
+        }
+
+        static void AddVolume(Transform parent, string name, VolumeProfile profile, float priority, float weight)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var volume = go.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = priority;
+            volume.weight = weight;
+            volume.sharedProfile = profile;
         }
 
         // ---------------------------------------------------------------- helpers

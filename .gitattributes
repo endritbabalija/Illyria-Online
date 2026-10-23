@@ -91,6 +91,10 @@
 *.cubemap filter=lfs diff=lfs merge=lfs -text
 *.unitypackage filter=lfs diff=lfs merge=lfs -text
 LightingData.asset filter=lfs diff=lfs merge=lfs -text
+# Terrain heightmaps and baked NavMeshes are binary even with Force Text serialization;
+# as text, eol=lf strips CR bytes out of them and Unity can no longer load them.
+NavMesh-*.asset filter=lfs diff=lfs merge=lfs -text
+*Terrain.asset filter=lfs diff=lfs merge=lfs -text
 *.lighting filter=lfs diff=lfs merge=lfs -text
 # Native libraries / archives
 *.dll   filter=lfs diff=lfs merge=lfs -text

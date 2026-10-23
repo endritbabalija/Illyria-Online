@@ -8,12 +8,12 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: OakValleySky
-  m_Shader: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: f7fd27910a9bc5240a2406e711f4a504, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
+  m_ValidKeywords: []
+  m_InvalidKeywords:
   - _SUNDISK_HIGH_QUALITY
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -27,12 +27,24 @@ Material:
     m_Ints: []
     m_Floats:
     - _AtmosphereThickness: 1.15
+    - _CloudCover: 0.45
+    - _CloudScale: 1.6
+    - _CloudSpeed: 0.004
     - _Exposure: 1.2
+    - _HorizonFog: 0.85
+    - _RidgeHeight: 1
+    - _SunDisc: 1
     - _SunDisk: 2
     - _SunSize: 0.05
     - _SunSizeConvergence: 5
     m_Colors:
+    - _CloudColor: {r: 1, g: 0.9, b: 0.84, a: 1}
     - _GroundColor: {r: 0.45, g: 0.41, b: 0.36, a: 1}
+    - _HorizonColor: {r: 0.9, g: 0.89, b: 0.84, a: 1}
+    - _RidgeFarColor: {r: 0.78, g: 0.74, b: 0.78, a: 1}
+    - _RidgeNearColor: {r: 0.62, g: 0.62, b: 0.68, a: 1}
     - _SkyTint: {r: 0.62, g: 0.55, b: 0.5, a: 1}
+    - _SunGlowColor: {r: 1, g: 0.7, b: 0.4, a: 1}
+    - _ZenithColor: {r: 0.24, g: 0.5, b: 0.88, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

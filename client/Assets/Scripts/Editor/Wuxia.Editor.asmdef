@@ -2,7 +2,9 @@
     "name": "Wuxia.Editor",
     "rootNamespace": "Wuxia.EditorTools",
     "references": [
-        "Wuxia"
+        "Wuxia",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"
