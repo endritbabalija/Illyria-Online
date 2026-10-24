@@ -409,7 +409,8 @@ namespace Wuxia.Player
             if (Physics.SphereCast(ray, tapRadius, out var hit, 80f, monsterMask, QueryTriggerInteraction.Ignore))
             {
                 var target = hit.collider.GetComponentInParent<Combatant>();
-                if (target != null && target.Team == Team.Monster && !target.IsDead) Engage(target);
+                // Beyond loseTargetRange the lock would drop next frame (and the server refuses it).
+                if (target != null && target.Team == Team.Monster && !target.IsDead && FlatDistance(target) <= data.loseTargetRange) Engage(target);
                 return;
             }
             // No monster under the finger: maybe an NPC (the Han Keeper's shop).
