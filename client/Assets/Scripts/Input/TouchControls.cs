@@ -59,16 +59,17 @@ namespace Wuxia.Input
         void OnEnable()
         {
             EnhancedTouchSupport.Enable();
-#if UNITY_EDITOR
-            // Lets the plain Game view drive touches with the mouse. The Input System skips this
-            // while the Device Simulator is open, since the simulator supplies its own touchscreen.
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && UNITY_STANDALONE)
+            // Lets the plain Game view (and a PC development build) drive touches with the mouse. The
+            // Input System skips this while the Device Simulator is open, since the simulator supplies
+            // its own touchscreen. Not on phones: a stylus there would count as two touches.
             TouchSimulation.Enable();
 #endif
         }
 
         void OnDisable()
         {
-#if UNITY_EDITOR
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && UNITY_STANDALONE)
             TouchSimulation.Disable();
 #endif
             EnhancedTouchSupport.Disable();

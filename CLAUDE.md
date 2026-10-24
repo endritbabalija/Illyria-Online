@@ -89,7 +89,7 @@ docker compose -f server/docker-compose.yml down            # stop (add -v to wi
 - Statuses: Thunder Arrow stuns, Crescent Fan may poison, Spring Wave may paralyse, Wrath of the Zanas may knock down. The target frame lists active statuses, and disabled wolves stop and wobble.
 - **Leap** (teal, left of the skill ring) leaps onto the best glowing ledge within 12 m in the joystick direction (or the way you face), within a 100° wedge: try the two stones west of the Han (3 m, then 6 m) and the kulla tower roof, the stones by each meadow pack and the den crag (a safe bow spot), and the ruined tower at the bandit camp (scaffold at ~5 m, then the top at ~9 m). With no marked ledge in reach it's a 6 m ground dash instead; unmarked geometry (the Han, rocks, cliffs) is never a landing spot. `[Leap] Landed on …` is logged per landing.
 - Wolves can't bite up onto a ledge (`reachHeight`), so a ledge plus the bow is a safe spot; that's fine offline and gets server rules in M4.
-- In the plain Game view the mouse is turned into touches by `TouchSimulation` (Editor only); the Input System skips that while the Device Simulator is open, so there's no double input.
+- In the plain Game view the mouse is turned into touches by `TouchSimulation` (Editor and PC development builds only; never on phones); the Input System skips that while the Device Simulator is open, so there's no double input. A Windows development build (target Windows 64, Mono, output `client/Builds/Windows/`, git-ignored) is the build check until there's a phone: the first build compiles every shader variant (~8 min), later ones ~1 min.
 
 #### Play-testing loot and inventory (M3)
 

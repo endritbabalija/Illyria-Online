@@ -687,11 +687,12 @@ namespace Wuxia.EditorTools
                 m.enableInstancing = true;
                 if (emission.HasValue)
                 {
-                    // The material's own keyword (EnableKeyword(string) didn't stick on a rebuild).
                     var emissive = new LocalKeyword(m.shader, "_EMISSION");
                     m.SetKeyword(emissive, true);
                     m.SetColor("_EmissionColor", emission.Value);
-                    m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                    // URP's material validation (inspector, reimport, URP upgrades) turns _EMISSION off
+                    // unless the GI flags are emissive; there are no lightmaps, so this only keeps the glow.
+                    m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
                 }
                 EditorUtility.SetDirty(m);
                 return m;
