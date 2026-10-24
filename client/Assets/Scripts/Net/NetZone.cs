@@ -67,6 +67,8 @@ namespace Wuxia.Net
         [SerializeField] float reconnectMaxDelay = 10f;
         [Tooltip("Seconds between position updates while moving.")]
         [SerializeField] float sendInterval = 0.1f;
+        [Tooltip("Seconds between re-sends of our target lock while the server's lock differs (refused at the range edge, or dropped).")]
+        [SerializeField] float targetSyncInterval = 0.5f;
 
         [Header("Scene")]
         [SerializeField] PlayerCombat player;
@@ -106,6 +108,9 @@ namespace Wuxia.Net
         string playing;
         int nextRid;
         float nextSend;
+        /// <summary>The monster the server has us locked on, from its target notices; null for none.</summary>
+        string serverTarget;
+        float nextTargetSync;
         Vector3 lastSentPosition;
         float lastSentYaw;
         Transform remoteRoot;
@@ -375,6 +380,7 @@ namespace Wuxia.Net
             foreach (var p in players.Values) if (p != null) Destroy(p.gameObject);
             players.Clear();
             pending.Clear();
+            serverTarget = null;
             if (loot != null) loot.ClearNet();
         }
 
@@ -399,7 +405,9 @@ namespace Wuxia.Net
 
         void Update()
         {
-            if (!InMatch || player.IsDead || leap.IsMoving || Time.unscaledTime < nextSend) return;
+            if (!InMatch || player.IsDead) return;
+            SyncTarget();
+            if (leap.IsMoving || Time.unscaledTime < nextSend) return;
             var t = player.transform;
             var yaw = t.eulerAngles.y;
             if ((t.position - lastSentPosition).sqrMagnitude < 0.0025f && Mathf.Abs(Mathf.DeltaAngle(yaw, lastSentYaw)) < 3f) return;
@@ -417,8 +425,26 @@ namespace Wuxia.Net
 
         public void SendTarget(Combatant target)
         {
+            nextTargetSync = Time.unscaledTime + targetSyncInterval;
+            Send(NetOp.Target, Json.Object("id", NetIdOf(target)));
+        }
+
+        /// <summary>
+        /// Our lock and the server's can disagree at the edge of loseTargetRange, where the two measure
+        /// from slightly different positions: a lock the server refused, or one it dropped that we kept,
+        /// would leave us standing by the monster without attacking. Re-send ours until they match.
+        /// </summary>
+        void SyncTarget()
+        {
+            if (Time.unscaledTime < nextTargetSync) return;
+            var target = player.Target;
+            if (NetIdOf(target) != serverTarget) SendTarget(target);
+        }
+
+        static string NetIdOf(Combatant target)
+        {
             var monster = target != null ? target.GetComponent<MonsterAI>() : null;
-            Send(NetOp.Target, Json.Object("id", monster != null ? monster.NetId : null));
+            return monster != null && !string.IsNullOrEmpty(monster.NetId) ? monster.NetId : null;
         }
 
         public void SendCast(string formId, string targetId, Vector3 facing) =>
@@ -668,7 +694,8 @@ namespace Wuxia.Net
                 pending.Remove(r.rid);
                 answered(r);
             }
-            if (!r.ok && !string.IsNullOrEmpty(r.text)) player.Tell(r.text);
+            // A refused lock is re-sent while we keep it (SyncTarget), so its wording would only flicker.
+            if (!r.ok && r.a != "target" && !string.IsNullOrEmpty(r.text)) player.Tell(r.text);
         }
 
         void OnCorrection(NetCorrection c)
@@ -681,7 +708,12 @@ namespace Wuxia.Net
 
         void OnNotice(NetNotice n)
         {
-            if (n.code == "target") return; // the client drops dead or far targets on its own
+            if (n.code == "target")
+            {
+                // The client drops dead or far targets on its own; this only tells SyncTarget what the server has.
+                serverTarget = string.IsNullOrEmpty(n.id) ? null : n.id;
+                return;
+            }
             if (!string.IsNullOrEmpty(n.text)) player.Tell(n.text);
         }
 
