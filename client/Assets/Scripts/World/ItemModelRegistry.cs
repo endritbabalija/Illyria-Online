@@ -23,6 +23,8 @@ namespace Wuxia.World
             public string modelKey;
             [Tooltip("Root at the grip; parented to WeaponPivot as is in hand.")]
             public GameObject prefab;
+            [Tooltip("Optional left-hand model for paired weapons (the sicas), parented to OffHandPivot as is. The pivot mirrors the right hand's pose, so the same prefab usually serves both hands.")]
+            public GameObject offHandPrefab;
             [Tooltip("Model position on the ground, relative to the drop spot.")]
             public Vector3 groundOffset;
             [Tooltip("Model rotation on the ground (a sword at (90, 0, 0) stands blade-down, stuck in the ground).")]

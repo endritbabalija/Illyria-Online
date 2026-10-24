@@ -52,7 +52,7 @@ The rest of this doc uses Kreshnik as the working title.
 | Decision | Choice | What it means for the build |
 | --- | --- | --- |
 | Scope | MMO-lite | A shared town hub plus separate zone instances ("channels") with a player cap each; no seamless open world |
-| Look | Full 3D | Third-person camera, Unity Asset Store characters, animations and effects |
+| Look | Full 3D, stylised and hand-painted | Third-person camera. Characters, monsters, weapons and items are generated with Tripo AI from concept images, cleaned up in Blender to a per-asset spec and budget (`docs/art/assets.md`); animations from Mixamo and the Quaternius library; effects from Cartoon FX |
 | Engine | Unity, with an MCP bridge so Claude Code can drive the editor | C# client; scenes wired through MCP, not by hand |
 | Server | Nakama | Accounts, chat, groups, storage and server-authoritative matches, with server logic in TypeScript |
 | Setting | Original world inspired by Illyrian and Albanian legends | Own story, names and characters; no Hero Online names, art or text |
@@ -301,7 +301,7 @@ Ten milestones, each small enough for one focused stretch of Claude Code session
 | M6 | Trading | Trade window, stalls with offline selling, buy orders, market board with fees and tax, mail, item lock, ledger | Duplication tests pass and every trade appears in the ledger |
 | M7 | Content | Levels 1–30, jobs, errands, Chapter 1, bounties, second zone, Kulshedra's Cave and its boss, Fortune Draws and boxes | A new player can reach level 30 in about a week of play |
 | M8 | Banners and war | Banner choice, clans, duels, arena, Kulla War | A 10-vs-10 test war runs 15 minutes without players seeing different results |
-| M9 | Polish and test build | Art pass with store assets, effects and sound, performance on a mid-range Android phone, closed test through Google Play | 10 testers play for a full week |
+| M9 | Polish and test build | Art pass (every greybox replaced through the asset pipeline), effects and sound, performance on a mid-range Android phone, closed test through Google Play | 10 testers play for a full week |
 
 Order matters: M1–M3 run offline so the game feels good before any server work, and the economy (M5–M6) is built on the server from day one.
 
@@ -315,6 +315,7 @@ Order matters: M1–M3 run offline so the game feels good before any server work
 - [ ] Auto-hunt: in the slice or not? Asian mobile MMOs usually have it, and it shapes zone and reward design
 - [ ] Android first and iOS after?
 - [ ] Player cap per zone channel (proposed 50) and per war (proposed 20 per side)
-- [ ] Art direction: which medieval-fantasy and ancient-armour packs, and whether to commission Illyrian-style helmets, shields and the twin sicas
+- [x] Art style: stylised, hand-painted (`docs/art/assets.md` → Art style)
+- [ ] The Tripo plan's licence terms for a commercial game
 - [ ] Where to host Nakama (provider and region near your players)
 - [ ] Money model: cash shop, token or both; decide before M9

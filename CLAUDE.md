@@ -181,6 +181,12 @@ docker compose -f server/docker-compose.yml down            # stop (add -v to wi
 - Models made in Blender still follow **Model textures** and the item-prefab rules above: export `.glb` with images split out, compressed in Unity, originals in `art-source/`.
 - **`art-source/GameAssets.blend`** is the working file: one collection per game model (Kreshnik, ZanasChosen, Wolf at its native size (`Wolf.prefab` scales it ×0.4), the game's IronSword, WornBow). Blender Z-up maps to Unity +Y and Blender −Y to Unity +Z, so model a weapon with its grip at the world origin. `WornBow_Parts` (hidden) holds the bow's separate, editable parts with their procedural materials (wood grain, leather, red wool cord, horn, linen); `WornBow` is them joined, UV-unwrapped, and baked (Cycles, Diffuse colour only) into one 512 px `WornBow_BaseColor`. To change the bow, edit the parts, re-join, re-bake, and export only `WornBow` (deselect everything first: objects in hidden collections stay selected and get exported too).
 
+### New 3D models (Tripo → Blender → Unity)
+
+- **`docs/art/assets.md` is the asset guide**: the pipeline steps, the style sheet, budgets per asset type (player ≤ 20k triangles and 1024 textures, monsters ≤ 5k/512, weapons ≤ 2k/512), axis/pivot/naming rules, and a spec card per asset. Fill in the card before generating, and check the result against it.
+- Raw Tripo exports and concept images go to `art-source/` untouched; every model folder in `Assets/` gets a `License.txt` (tool, plan and its terms, date, what was changed).
+- A replacement model is a new asset and prefab variant next to the old one, rewired through MCP; never overwrite a `.glb` that prefabs reference.
+
 ## Conventions
 
 - **Server-authoritative.** Anything that affects gold, items or combat outcomes is decided on the server; the client only predicts visuals. Upgrade rolls, trades and market actions are single atomic server calls, and every gold/item change is logged.

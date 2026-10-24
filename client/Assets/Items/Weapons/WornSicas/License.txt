@@ -1,0 +1,15 @@
+Worn Sica (WornSica.glb, WornSica_BaseColor.jpg)
+
+Generated with Tripo AI (image to 3D), 2026-10-24.
+Tripo plan and its licence terms: TO FILL IN (check before any commercial release).
+Concept image: art-source/concepts/WornSica.png, made from the prompt in docs/art/assets.md (Pilot: Worn Sicas).
+Raw export: art-source/WornSicaTripo.glb (9,982 triangles, three 4096 maps).
+
+Changed: cleaned by art-source/tripo_static.py (stood on the game's axes with the grip at the origin,
+scaled to 0.6 m, reduced to 1,000 triangles, Tripo's material replaced by one matte single-sided
+material with the base colour resized to 512; normal and metallic-roughness maps dropped), then
+textures split out with art-source/glb_extract_images.py.
+
+  blender -b --factory-startup --python art-source/tripo_static.py -- art-source/WornSicaTripo.glb WornSica.glb WornSica
+      --along +x --side +z --grip 0.125 0.275 --length 0.6 --tris 1000 --texture 512
+  python -I art-source/glb_extract_images.py WornSica.glb client/Assets/Items/Weapons/WornSicas/WornSica.glb WornSica_BaseColor

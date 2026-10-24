@@ -15,19 +15,29 @@ MonoBehaviour:
   items:
   - modelKey: IronSword
     prefab: {fileID: 4999723231108255703, guid: d274de6bd136aa041ae498276162cfde, type: 3}
+    offHandPrefab: {fileID: 0}
     groundOffset: {x: 0, y: 0.62, z: 0}
     groundEuler: {x: 80, y: 0, z: 0}
     groundSpin: 0
     groundBob: 0
   - modelKey: WornBow
     prefab: {fileID: 6692122472031632811, guid: eb7ef81ba0805ea41ba78327f567f89e, type: 3}
+    offHandPrefab: {fileID: 0}
     groundOffset: {x: 0, y: 0.67, z: 0}
     groundEuler: {x: 0, y: 30, z: 8}
+    groundSpin: 0
+    groundBob: 0
+  - modelKey: WornSicas
+    prefab: {fileID: 5362227596331510213, guid: a6f8a1fd030b3b14f88b64107b04618c, type: 3}
+    offHandPrefab: {fileID: 5362227596331510213, guid: a6f8a1fd030b3b14f88b64107b04618c, type: 3}
+    groundOffset: {x: 0, y: 0.4, z: 0}
+    groundEuler: {x: 80, y: 0, z: 0}
     groundSpin: 0
     groundBob: 0
   gold:
     modelKey: Gold
     prefab: {fileID: 8587388732072566000, guid: dc90610e78890d542b7cf1dc8c8a8c65, type: 3}
+    offHandPrefab: {fileID: 0}
     groundOffset: {x: 0, y: 0, z: 0}
     groundEuler: {x: 0, y: 0, z: 0}
     groundSpin: 0
@@ -35,6 +45,7 @@ MonoBehaviour:
   pouch:
     modelKey: Pouch
     prefab: {fileID: 5386986576245558907, guid: a215dc1670397ab468a0725ebeb4c835, type: 3}
+    offHandPrefab: {fileID: 0}
     groundOffset: {x: 0, y: 0, z: 0}
     groundEuler: {x: 0, y: 0, z: 0}
     groundSpin: 40

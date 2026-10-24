@@ -10,8 +10,8 @@ namespace Wuxia.Player
     /// Shows the current character's model and the held weapon's model, and tints the greybox cloth
     /// per character. The weapons share one pivot that moves to the active model's right hand; paired
     /// weapons (the sicas) put their second model under an off-hand pivot that moves to the left hand.
-    /// A wielded item whose modelKey has a prefab in <see cref="ItemModelRegistry"/> shows that model;
-    /// anything else shows the greybox model of its weapon type.
+    /// A wielded item whose modelKey has a prefab in <see cref="ItemModelRegistry"/> shows that model
+    /// (and its off-hand model, if the entry has one); anything else shows the greybox model of its weapon type.
     /// </summary>
     public class PlayerAppearance : MonoBehaviour
     {
@@ -51,8 +51,8 @@ namespace Wuxia.Player
         [SerializeField] CharacterLook[] looks;
 
         MaterialPropertyBlock block;
-        // One instance per item model, made the first time it's wielded and kept under the pivot.
-        readonly Dictionary<string, GameObject> itemInstances = new Dictionary<string, GameObject>();
+        // One instance per item model (main hand, off hand or null), made the first time it's wielded and kept under the pivots.
+        readonly Dictionary<string, GameObject[]> itemInstances = new Dictionary<string, GameObject[]>();
 
         /// <summary>The weapon pivots on the active model's hands.</summary>
         public WeaponHands Hands => new WeaponHands { Main = weaponPivot, OffHand = offHandPivot };
@@ -67,7 +67,9 @@ namespace Wuxia.Player
         void Apply()
         {
             var shown = ItemModel();
-            foreach (var instance in itemInstances.Values) instance.SetActive(instance == shown);
+            foreach (var models in itemInstances.Values)
+                foreach (var m in models)
+                    if (m != null) m.SetActive(models == shown);
             foreach (var w in weapons)
             {
                 var wielded = shown == null && w.weaponId == combat.Weapon.id;
@@ -150,10 +152,10 @@ namespace Wuxia.Player
 
             GameObject[] Models(Data.ItemDef weapon)
             {
-                var prefab = source.itemModels != null ? source.itemModels.FindPrefab(weapon.modelKey) : null;
-                var key = prefab != null ? "item:" + weapon.modelKey : "type:" + weapon.weaponType;
+                var entry = source.itemModels != null ? source.itemModels.Find(weapon.modelKey) : null;
+                var key = entry != null ? "item:" + weapon.modelKey : "type:" + weapon.weaponType;
                 if (instances.TryGetValue(key, out var made)) return made;
-                if (prefab != null) made = new[] { Copy(prefab, pivot) };
+                if (entry != null) made = new[] { Copy(entry.prefab, pivot), offHandPivot != null ? Copy(entry.offHandPrefab, offHandPivot) : null };
                 else
                 {
                     var i = Array.FindIndex(source.weapons, w => w.weaponId == weapon.weaponType);
@@ -180,22 +182,29 @@ namespace Wuxia.Player
             }
         }
 
-        /// <summary>The wielded item's own model under the pivot, or null to use the greybox one.</summary>
-        GameObject ItemModel()
+        /// <summary>The wielded item's own models under the pivots (main hand, off hand or null), or null to use the greybox ones.</summary>
+        GameObject[] ItemModel()
         {
             var item = combat.Items.Equipment.Weapon;
             if (item == null || itemModels == null) return null;
             var key = item.Def.modelKey;
-            var prefab = itemModels.FindPrefab(key);
-            if (prefab == null) return null;
-            if (!itemInstances.TryGetValue(key, out var instance))
+            var entry = itemModels.Find(key);
+            if (entry == null) return null;
+            if (!itemInstances.TryGetValue(key, out var models))
             {
-                instance = Instantiate(prefab, weaponPivot, false);
-                instance.name = prefab.name;
-                foreach (var c in instance.GetComponentsInChildren<Collider>(true)) Destroy(c);
-                foreach (var t in instance.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = weaponPivot.gameObject.layer;
-                itemInstances[key] = instance;
+                models = new[] { Instance(entry.prefab, weaponPivot), offHandPivot != null ? Instance(entry.offHandPrefab, offHandPivot) : null };
+                itemInstances[key] = models;
             }
+            return models;
+        }
+
+        static GameObject Instance(GameObject prefab, Transform pivot)
+        {
+            if (prefab == null) return null;
+            var instance = Instantiate(prefab, pivot, false);
+            instance.name = prefab.name;
+            foreach (var c in instance.GetComponentsInChildren<Collider>(true)) Destroy(c);
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = pivot.gameObject.layer;
             return instance;
         }
     }
