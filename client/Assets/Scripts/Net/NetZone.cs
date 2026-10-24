@@ -124,9 +124,16 @@ namespace Wuxia.Net
         public bool InMatch { get; private set; }
         public string Channel { get; private set; }
 
+        /// <summary>Set before the scene loads to override the scene's connectOnStart (the smoke tests); null keeps it.</summary>
+        public static bool? ConnectOnStartOverride;
+        /// <summary>Set before the scene loads to play as another account (the smoke tests' own); null keeps deviceIdSuffix.</summary>
+        public static string DeviceIdSuffixOverride;
+
         void Awake()
         {
             Instance = this;
+            if (ConnectOnStartOverride.HasValue) connectOnStart = ConnectOnStartOverride.Value;
+            if (DeviceIdSuffixOverride != null) deviceIdSuffix = DeviceIdSuffixOverride;
             if (!connectOnStart) return;
             foreach (var spawner in FindObjectsByType<MonsterSpawner>(FindObjectsSortMode.None))
             {
